@@ -21,18 +21,16 @@ from dotenv import load_dotenv
 from fastapi_utils.session import FastAPISessionMaker
 from fastapi_utils.tasks import repeat_every
 import requests 
-from models import Order, Promo, PromoStats
+from models import Order, Promo, PromoStats, Stats, Stocks
 import datetime
 from dateutil.parser import parse
 from sqlalchemy import Date, cast
 from sqlalchemy.sql import func
-
+from asyncio import sleep
 load_dotenv()
 database_uri = os.environ.get('DATABASE_URL')
 
 sessionmaker = FastAPISessionMaker(database_uri)
-
-
 
 load_dotenv()
 
@@ -139,17 +137,6 @@ def update_adv_stats(db: Session) -> None:
     except Exception as e:
         print(e)
         
-# def update_adv_stats(db: Session) -> None:
-#     try:
-#         print("ALLO")
-#         stat: PromoStats = db.query(PromoStats).first()
-#         orders = db.query(func.sum(Order.priceWithDisc).label("TotalOrdersSum")).filter(cast(Order.date, Date)== stat.date).first()[0]
-#         print(orders)
-#         print(stat.date)
-
-#     except Exception as e:
-#         print(e)
-
 def update_adv_company(db: Session) -> None:
     print("ha")
     try:
@@ -181,7 +168,7 @@ def update_adv_company(db: Session) -> None:
     print("TOKEN")
 
 
-def remove_expired_tokens(db: Session) -> None:
+def update_orders(db: Session) -> None:
     print("ha")
     try:
         users = db.query(User).all()
@@ -214,23 +201,172 @@ def remove_expired_tokens(db: Session) -> None:
     print("TOKEN")
     """Pretend this function deletes expired tokens from the database"""
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60)  # 1 hour
-# def remove_expired_tokens_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         remove_expired_tokens(db=db)
+def update_stats(db: Session) -> None:
+    print("ha")
+    try:
+        users = db.query(User).all()
+        for user in users:
+            base = datetime.datetime.today()
+            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1, 30)]
+            for date in date_list:
+                start = f"{date} 0:00:00"
+                end = f"{date} 23:59:59"
+                print(start, end)
+                existing_stat = db.query(Stats).filter(Stats.date==date).first()
+                if existing_stat:
+                    print(f"Already exists {date}")
+                else:
+                    body = {
+                        "timezone": "Europe/Moscow",
+                        "period": {
+                            "begin": start,
+                            "end": end
+                        },
+                        "orderBy": {
+                            "field": "ordersSumRub",
+                            "mode": "asc"
+                        },
+                        "page": 1
+                    }
+                    stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
+                        'Authorization': user.token
+                    }, json=body)
+                    print(stats.json())
+                    repeat_index = 0
+                    print(stats.status_code)
+                    while stats.status_code !=200:
+                        if repeat_index==3:
+                            print(f"breaking date {date}")
+                            break
+                        print("REPATING Request")
+                        sleep(10)
+                        stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
+                            'Authorization': user.token
+                        }, json=body)
+                        repeat_index+=1
+                    
+                    stats = stats.json()
+                    for card in stats['data']['cards']:
+                        db_stat = Stats()
+                        db_stat.date = date
+                        db_stat.nmId = card['nmID']
+                        db_stat.vendorCode = card['vendorCode']
+                        db_stat.brandName = card['brandName']
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60)  # 1 hour
-# def update_promo() -> None:
-#     with sessionmaker.context_session() as db:
-#         update_adv_company(db=db)
+
+                        db_stat.openCardCount  = card['statistics']['selectedPeriod']['openCardCount']
+                        db_stat.addToCartCount  = card['statistics']['selectedPeriod']['addToCartCount']
+                        
+                        db_stat.ordersCount  = card['statistics']['selectedPeriod']['ordersCount']
+                        db_stat.ordersSumRub  = card['statistics']['selectedPeriod']['ordersSumRub']
+                        db_stat.buyoutsCount  = card['statistics']['selectedPeriod']['buyoutsCount']
+
+                        db_stat.buyoutsSumRub  = card['statistics']['selectedPeriod']['buyoutsSumRub']
+                        db_stat.cancelCount  = card['statistics']['selectedPeriod']['cancelCount']
+                        db_stat.cancelSumRub  = card['statistics']['selectedPeriod']['cancelSumRub']
+
+                        db_stat.addToCartPercent  = card['statistics']['selectedPeriod']['conversions']['addToCartPercent']
+                        db_stat.cartToOrderPercent  = card['statistics']['selectedPeriod']['conversions']['cartToOrderPercent']
+                        db_stat.buyoutsPercent  = card['statistics']['selectedPeriod']['conversions']['buyoutsPercent']
+
+                        db.add(db_stat)
+                        db.commit()
+                        print(f"SAVING {date}")
+
+
+    except Exception as e:
+        print(e)
+        
+    print("TOKEN")
+
+
+def update_stocks(db: Session) -> None:
+    print("ha")
+    try:
+        users = db.query(User).all()
+        for user in users:
+            stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
+                'Authorization': user.token
+            })
+            repeat_index = 0
+            while stocks.status_code !=200:
+                if repeat_index==3:
+                    break
+                print("REPATING Request")
+                sleep(10)
+                stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
+                    'Authorization': user.token
+                })
+                repeat_index+=1
+            stocks = stocks.json()
+            for stock in stocks:
+                existing_stock =  db.query(Stocks).filter(Stocks.warehouseName==stock['warehouseName'], Stocks.nmId==stock['nmId']).first()
+                if existing_stock:
+                    print("UPDATING")
+                db_stock = existing_stock if existing_stock else Stocks()
+                db_stock.lastChangeDate = stock['lastChangeDate']
+                db_stock.warehouseName = stock['warehouseName']
+                db_stock.supplierArticle = stock['supplierArticle']
+                db_stock.nmId = stock['nmId']
+                db_stock.barcode = stock['barcode']
+                db_stock.quantity = stock['quantity']
+                db_stock.inWayToClient = stock['inWayToClient']
+                db_stock.inWayFromClient = stock['inWayFromClient']
+                db_stock.quantityFull = stock['quantityFull']
+                db_stock.techSize = stock['techSize']
+                db_stock.Price = stock['Price']
+                db_stock.Discount = stock['Discount']
+                db_stock.isSupply = stock['isSupply']
+                db_stock.isRealization = stock['isRealization']
+                db_stock.SCCode = stock['SCCode']
+                db.add(db_stock)
+                db.commit()
+                # print("SAVED")
+
+    except Exception as e:
+        print(e)
+        
+    print("TOKEN")
 
 @app.on_event("startup")
-@repeat_every(seconds=60)  # 1 hour
+@repeat_every(seconds=60*60*24)  # 1 hour
+def remove_expired_tokens_task() -> None:
+    with sessionmaker.context_session() as db:
+        sleep(60*5)
+        update_orders(db=db)
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*12)  # 1 hour
+def update_adv_company() -> None:
+    with sessionmaker.context_session() as db:
+        # sleep(60*10)
+        update_adv_company(db=db)
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*24)  # 1 hour
 def update_promo() -> None:
     with sessionmaker.context_session() as db:
+        # sleep(60*10)
+        update_promo(db=db)
+    
+@app.on_event("startup")
+@repeat_every(seconds=60*60*24+60*5)  # 1 hour
+def update_promo_stats() -> None:
+    with sessionmaker.context_session() as db:
         update_adv_stats(db=db)
+
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*4)  # 1 hour
+def update_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        update_stats(db=db)
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*12)  # 1 hour
+def update_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        update_stocks(db=db)
 
 
 if __name__ == "__main__":
