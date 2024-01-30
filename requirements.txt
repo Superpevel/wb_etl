@@ -5,7 +5,7 @@ alembic==1.8.0
 anyio==3.6.1
 async-generator==1.10
 async-timeout==4.0.3
-attrs==22.1.0
+attrs==22.2.0
 Babel==2.14.0
 bcrypt==4.1.2
 beautifulsoup4==4.11.1
