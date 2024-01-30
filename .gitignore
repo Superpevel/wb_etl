@@ -5,6 +5,8 @@ __pycache__/
 *.pyo
 .DS_STORE
 .python-version
-alembic.ini
+# alembic.ini
 *.log
 **/*.log
+*.log
+./logs/log_files/*

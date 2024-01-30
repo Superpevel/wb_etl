@@ -12,5 +12,7 @@ class Ping(Base):
     id = Column(Integer, primary_key=True, index=True)
     text = Column(String(800), nullable=False)
 
+
     def __repr__(self):
         return '<Ping %r>' % self.id
+    

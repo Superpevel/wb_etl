@@ -26,7 +26,7 @@ LOGGING_CONFIG = {
             'maxBytes': 100000000,
             'backupCount': 10,
             'formatter': 'default_formatter',
-            'filename': f"{os.path.dirname(__file__)}/log_files/{os.environ.get('LOG_FILE_INFO')}",
+            'filename': f"{os.path.dirname(__file__)}/log_files/main.log",
         }
     },
     'loggers': {
