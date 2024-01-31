@@ -330,48 +330,44 @@ def update_stocks(db: Session) -> None:
         
     print("TOKEN")
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*24)  # 1 hour
-# def remove_expired_tokens_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         sleep(60*5)
-#         update_orders(db=db)
 
 @app.on_event("startup")
 @repeat_every(seconds=60*60*12)  # 1 hour
 def update_adv_company_task() -> None:
     with sessionmaker.context_session() as db:
-        # sleep(60*10)
         try:
             update_adv_company(db=db)
         except Exception as e:
             print(e)
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*24)  # 1 hour
-# def update_promo() -> None:
-#     with sessionmaker.context_session() as db:
-#         # sleep(60*10)
-#         update_promo(db=db)
-    
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*24+60*5)  # 1 hour
-# def update_promo_stats() -> None:
-#     with sessionmaker.context_session() as db:
-#         update_adv_stats(db=db)
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*24+60*5)  # 1 hour
+def update_promo_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        sleep(60*2)
+        update_adv_stats(db=db)
 
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*4)  # 1 hour
-# def update_stats_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         update_stats(db=db)
+@app.on_event("startup")
+@repeat_every(seconds=60*60*4)  # 1 hour
+def update_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        update_stats(db=db)
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*12)  # 1 hour
-# def update_stats_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         update_stocks(db=db)
+@app.on_event("startup")
+@repeat_every(seconds=60*60*12)  # 1 hour
+def update_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        update_stocks(db=db)
+
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*12)  # 1 hour
+def update_orders_task() -> None:
+    with sessionmaker.context_session() as db:
+        update_orders(db=db)
+
 
 
 if __name__ == "__main__":
