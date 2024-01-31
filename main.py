@@ -339,10 +339,13 @@ def update_stocks(db: Session) -> None:
 
 @app.on_event("startup")
 @repeat_every(seconds=60*60*12)  # 1 hour
-def update_adv_company() -> None:
+def update_adv_company_task() -> None:
     with sessionmaker.context_session() as db:
         # sleep(60*10)
-        update_adv_company(db=db)
+        try:
+            update_adv_company(db=db)
+        except Exception as e:
+            print(e)
 
 # @app.on_event("startup")
 # @repeat_every(seconds=60*60*24)  # 1 hour
