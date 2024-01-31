@@ -75,7 +75,7 @@ def update_adv_stats(db: Session) -> None:
             for promo in promos:
                 if promo.status in [9,11]:
                     base = datetime.datetime.today()
-                    date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(30)]
+                    date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(90)]
                     body.append({
                         'id': promo.advertId,
                         "dates": date_list
@@ -338,35 +338,39 @@ def update_adv_company_task() -> None:
         try:
             update_adv_company(db=db)
         except Exception as e:
-            print(e)
+            print('ERROR',e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*24+60*5)  # 1 hour
-def update_promo_stats_task() -> None:
-    with sessionmaker.context_session() as db:
-        sleep(60*2)
-        update_adv_stats(db=db)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*24+60*5)  # 1 hour
+# def update_promo_stats_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         # sleep(60*2)
+#         try:
+#             print("START UPDATING STATS")
+#             update_adv_stats(db=db)
+#         except Exception as e:
+#             print(e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*4)  # 1 hour
-def update_stats_task() -> None:
-    with sessionmaker.context_session() as db:
-        update_stats(db=db)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*4)  # 1 hour
+# def update_stats_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         update_stats(db=db)
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_stats_task() -> None:
-    with sessionmaker.context_session() as db:
-        update_stocks(db=db)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
+# def update_stats_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         update_stocks(db=db)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_orders_task() -> None:
-    with sessionmaker.context_session() as db:
-        update_orders(db=db)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
+# def update_orders_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         update_orders(db=db)
 
 
 
