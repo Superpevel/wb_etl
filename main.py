@@ -331,26 +331,25 @@ def update_stocks(db: Session) -> None:
     print("TOKEN")
 
 
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
+# def update_adv_company_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             update_adv_company(db=db)
+#         except Exception as e:
+#             print('ERROR',e)
+
+
 @app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_adv_company_task() -> None:
+@repeat_every(seconds=60*60*24+60*5)  # 1 hour
+def update_promo_stats_task() -> None:
     with sessionmaker.context_session() as db:
         try:
-            update_adv_company(db=db)
+            print("START UPDATING STATS")
+            update_adv_stats(db=db)
         except Exception as e:
-            print('ERROR',e)
-
-
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60*24+60*5)  # 1 hour
-# def update_promo_stats_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         # sleep(60*2)
-#         try:
-#             print("START UPDATING STATS")
-#             update_adv_stats(db=db)
-#         except Exception as e:
-#             print(e)
+            print('error',e)
 
 
 # @app.on_event("startup")
