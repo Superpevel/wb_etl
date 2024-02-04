@@ -17,9 +17,10 @@ class Promo(Base):
     type =  Column(Integer)
     status = Column(Integer)
     user_id = Column(Integer, ForeignKey("users.id"))
+    company_name = Column(String)
 
     def __repr__(self):
-        return '<Promo %r>' % self.id
+        return '<Promo %r>' % self.advertId
 
 class PromoStats(Base):
 
@@ -35,6 +36,22 @@ class PromoStats(Base):
     sum =  Column(Float)
     date_order_sum = Column(Float)
     drr = Column(Float)
+    advert_id = Column(Integer, ForeignKey("promo.advertId"))
+    user_id = Column(Integer, ForeignKey("users.id"))
+
+    def __repr__(self):
+        return '<PromoStats %r>' % self.id
+
+class KeyWordsStats(Base):
+    __tablename__ = 'key_words_stats'
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(TIMESTAMP)
+    keyword = Column(String)
+    views = Column(Integer)
+    clicks = Column(Integer)
+    ctr = Column(Integer)
+    sum =  Column(Float)
     advert_id = Column(Integer, ForeignKey("promo.advertId"))
     user_id = Column(Integer, ForeignKey("users.id"))
 

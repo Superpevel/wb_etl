@@ -21,7 +21,7 @@ from dotenv import load_dotenv
 from fastapi_utils.session import FastAPISessionMaker
 from fastapi_utils.tasks import repeat_every
 import requests 
-from models import Order, Promo, PromoStats, Stats, Stocks
+from models import Order, Promo, PromoStats, Stats, Stocks, KeyWordsStats
 import datetime
 from dateutil.parser import parse
 from sqlalchemy import Date, cast
@@ -162,8 +162,22 @@ def update_adv_company(db: Session) -> None:
                             db.commit()
                 except Exception as e:
                     print(e)
-            # print(orders[0])
-            # print(user.token)
+
+            promos_db = db.query(Promo).filter(Promo.user_id==user.id).all()
+            promo_ids = [ promo.advertId for promo in promos_db ]
+            promo_info = requests.post("https://advert-api.wb.ru/adv/v1/promotion/adverts", headers={
+                'Authorization': user.token
+            }, json=promo_ids)
+
+            promo_info = promo_info.json()
+            
+            for info in promo_info:
+                exist = db.query(Promo).filter(Promo.advertId==info['advertId']).first()
+                exist.company_name = info['name']
+                db.add(exist)
+                db.commit()
+                print("UPDATED! promo name")
+                
     except Exception as e:
         print(e)
         
@@ -280,6 +294,39 @@ def update_stats(db: Session) -> None:
         
     print("TOKEN")
 
+def update_key_word_stat(db: Session) -> None:
+    print("ha!")
+    try:
+        users = db.query(User).all()
+        for user in users:
+            promos_db: List[Promo] = db.query(Promo).filter(Promo.user_id==user.id).all()
+            for promo_db in promos_db:
+                keyword_stat = requests.get(f"https://advert-api.wb.ru/adv/v2/auto/daily-words?id={promo_db.advertId}", headers={
+                    'Authorization': user.token
+                })
+
+                keyword_stat = keyword_stat.json()
+
+                for date_stat in keyword_stat:
+                    for key_word in date_stat['stat']:
+                        exist = db.query(KeyWordsStats).filter(KeyWordsStats.date==date_stat['date'], KeyWordsStats.user_id==user.id, KeyWordsStats.advert_id==promo_db.advertId, KeyWordsStats.keyword==key_word['keyword']).first()
+                        if exist:
+                            print("ALREADY EXISTS")
+                            continue
+                        db_ks = KeyWordsStats()
+                        db_ks.advert_id = promo_db.advertId
+                        db_ks.keyword = key_word['keyword']
+                        db_ks.clicks = key_word['clicks']
+                        db_ks.views = key_word['views']
+                        db_ks.ctr = key_word['ctr']
+                        db_ks.sum = key_word['sum']
+                        db_ks.date = date_stat['date']
+                        db.add(db_ks)
+                        db.commit()
+    except Exception as e:
+        print(e)
+        
+    print("TOKEN")    
 
 def update_stocks(db: Session) -> None:
     print("ha")
@@ -342,7 +389,7 @@ def update_adv_company_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*24+60*5)  # 1 hour
+@repeat_every(seconds=60*60*12+60*5)  # 1 hour
 def update_promo_stats_task() -> None:
     with sessionmaker.context_session() as db:
         try:
@@ -372,7 +419,7 @@ def update_stats_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
+@repeat_every(seconds=60*60*8)  # 1 hour
 def update_orders_task() -> None:
     try:
         with sessionmaker.context_session() as db:
@@ -380,6 +427,16 @@ def update_orders_task() -> None:
     except Exception as e:
         print(e)
 
+
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*6)  # 1 hour
+def update_adv_work_stat_task() -> None:
+    with sessionmaker.context_session() as db:
+        try:
+            update_key_word_stat(db=db)
+        except Exception as e:
+            print('ERROR',e)
 
 
 if __name__ == "__main__":
