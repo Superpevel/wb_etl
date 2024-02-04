@@ -323,8 +323,9 @@ def update_key_word_stat(db: Session) -> None:
                         db_ks.date = date_stat['date']
                         db.add(db_ks)
                         db.commit()
+                        print("ADD NEW PROMO STAT")
     except Exception as e:
-        print(e)
+        print(e, 'some error here!')
         
     print("TOKEN")    
 
@@ -378,54 +379,54 @@ def update_stocks(db: Session) -> None:
     print("TOKEN")
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_adv_company_task() -> None:
-    with sessionmaker.context_session() as db:
-        try:
-            update_adv_company(db=db)
-        except Exception as e:
-            print('ERROR',e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
+# def update_adv_company_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             update_adv_company(db=db)
+#         except Exception as e:
+#             print('ERROR',e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12+60*5)  # 1 hour
-def update_promo_stats_task() -> None:
-    with sessionmaker.context_session() as db:
-        try:
-            print("START UPDATING STATS")
-            update_adv_stats(db=db)
-        except Exception as e:
-            print('error',e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12+60*5)  # 1 hour
+# def update_promo_stats_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             print("START UPDATING STATS")
+#             update_adv_stats(db=db)
+#         except Exception as e:
+#             print('error',e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*4)  # 1 hour
-def update_stats_task() -> None:
-    try:
-        with sessionmaker.context_session() as db:
-            update_stats(db=db)
-    except Exception as e:
-        print(e, "ERROR")
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*4)  # 1 hour
+# def update_stats_task() -> None:
+#     try:
+#         with sessionmaker.context_session() as db:
+#             update_stats(db=db)
+#     except Exception as e:
+#         print(e, "ERROR")
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_stats_task() -> None:
-    try:
-        with sessionmaker.context_session() as db:
-            update_stocks(db=db)
-    except Exception as e:
-        print(e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
+# def update_stats_task() -> None:
+#     try:
+#         with sessionmaker.context_session() as db:
+#             update_stocks(db=db)
+#     except Exception as e:
+#         print(e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*8)  # 1 hour
-def update_orders_task() -> None:
-    try:
-        with sessionmaker.context_session() as db:
-            update_orders(db=db)
-    except Exception as e:
-        print(e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*8)  # 1 hour
+# def update_orders_task() -> None:
+#     try:
+#         with sessionmaker.context_session() as db:
+#             update_orders(db=db)
+#     except Exception as e:
+#         print(e)
 
 
 
