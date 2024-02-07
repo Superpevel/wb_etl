@@ -29,6 +29,6 @@ class Stats(Base):
     addToCartPercent = Column(Float)
     cartToOrderPercent = Column(Float)
     buyoutsPercent = Column(Float)
-
+    avg_price_rub = Column(Float)
     def __repr__(self):
         return '<Stats %r>' % self.id
