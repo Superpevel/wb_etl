@@ -27,6 +27,7 @@ from dateutil.parser import parse
 from sqlalchemy import Date, cast
 from sqlalchemy.sql import func
 from asyncio import sleep
+import platform
 load_dotenv()
 database_uri = os.environ.get('DATABASE_URL')
 
@@ -426,6 +427,12 @@ def update_adv_work_stat_task() -> None:
 
 
 if __name__ == "__main__":
-    uvicorn.run('main:app', host="0.0.0.0", port=8007, reload=True, debug=True)
+    # print( platform.platform())
+    if 'macOS' in platform.platform():
+        print("AS")
+        uvicorn.run('main:app', host="0.0.0.0", port=8007, reload=True, debug=True)
+    else:
+        uvicorn.run('main:app', host="0.0.0.0", port=8007, reload=False, debug=False)
+
 
 
