@@ -366,7 +366,7 @@ def update_stocks(db: Session) -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*3)  # 1 hour
+@repeat_every(seconds=60*60)  # 1 hour
 def update_adv_company_task() -> None:
     with sessionmaker.context_session() as db:
         try:
@@ -376,7 +376,7 @@ def update_adv_company_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*12+60*5)  # 1 hour
+@repeat_every(seconds=60*60)  # 1 hour
 def update_promo_stats_task() -> None:
     with sessionmaker.context_session() as db:
         try:
@@ -387,7 +387,7 @@ def update_promo_stats_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*4)  # 1 hour
+@repeat_every(seconds=60*60)  # 1 hour
 def update_stats_task() -> None:
     try:
         with sessionmaker.context_session() as db:
@@ -396,17 +396,18 @@ def update_stats_task() -> None:
         print(e, "ERROR")
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*4)  # 1 hour
-def update_stats_task() -> None:
+@repeat_every(seconds=60*30)  # 1 hour
+def update_stocks_task() -> None:
     try:
         with sessionmaker.context_session() as db:
             update_stocks(db=db)
+            logger.info("UPDATING STOCKS")
     except Exception as e:
         print(e)
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*5)  # 1 hour
+@repeat_every(seconds=60*60)  # 1 hour
 def update_orders_task() -> None:
     try:
         with sessionmaker.context_session() as db:
@@ -417,7 +418,7 @@ def update_orders_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*6)  # 1 hour
+@repeat_every(seconds=60*60)  # 1 hour
 def update_adv_work_stat_task() -> None:
     with sessionmaker.context_session() as db:
         try:
