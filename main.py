@@ -66,7 +66,6 @@ async def read_main():
 
 
 def update_adv_stats(db: Session) -> None:
-    print("ha")
     try:
         users = db.query(User).all()
         for user in users:
@@ -80,7 +79,6 @@ def update_adv_stats(db: Session) -> None:
                         'id': promo.advertId,
                         "dates": date_list
                     })
-            print(body)
 
             promo_stats = requests.post("https://advert-api.wb.ru/adv/v2/fullstats", 
                 json=body,
@@ -108,27 +106,26 @@ def update_adv_stats(db: Session) -> None:
                         try:
                             for nm, stats in nms.items():
                                 pass
-                                exist_stat = db.query(PromoStats).filter(PromoStats.date==date, PromoStats.nmId==int(nm)).first()
-                                if exist_stat:
-                                    print("stat exist!")
-                                else:
-                                    try:
-                                        db_stat = PromoStats()
-                                        db_stat.advert_id=advCom
-                                        db_stat.clicks=stats['clicks']
-                                        db_stat.sum=stats['sum']
-                                        db_stat.views=stats['views']
-                                        db_stat.nmId=int(nm)    
-                                        db_stat.date=date
-                                        db_stat.user_id=user.id
-                                        orders = db.query(func.sum(Order.priceWithDisc).label("TotalOrdersSum")).filter(cast(Order.date, Date)== db_stat.date).first()
-                                        db_stat.date_order_sum = round(orders[0], 2) if orders and orders[0] else None
-                                        db_stat.drr =  round(db_stat.sum/db_stat.date_order_sum*100,2) if db_stat.date_order_sum else None
-                                        print("ADD PROMO STAT")
-                                        db.add(db_stat)
-                                        db.commit()
-                                    except Exception as e:
-                                        print(e, 'level 3')
+                                exist_stat: PromoStats = db.query(PromoStats).filter(PromoStats.date==date, PromoStats.nmId==int(nm)).first()
+                                # if exist_stat:
+                                #     logger(f"stat exist! {exist_stat.date} {exist_stat.nmId}")
+                                try:
+                                    db_stat = PromoStats() if not exist_stat else exist_stat
+                                    db_stat.advert_id=advCom
+                                    db_stat.clicks=stats['clicks']
+                                    db_stat.sum=stats['sum']
+                                    db_stat.views=stats['views']
+                                    db_stat.nmId=int(nm)    
+                                    db_stat.date=date
+                                    db_stat.user_id=user.id
+                                    orders = db.query(func.sum(Order.priceWithDisc).label("TotalOrdersSum")).filter(cast(Order.date, Date)== db_stat.date).first()
+                                    db_stat.date_order_sum = round(orders[0], 2) if orders and orders[0] else None
+                                    db_stat.drr =  round(db_stat.sum/db_stat.date_order_sum*100,2) if db_stat.date_order_sum else None
+                                    logger.info("ADD PROMO STAT")
+                                    db.add(db_stat)
+                                    db.commit()
+                                except Exception as e:
+                                    print(e, 'level 3')
                         except Exception as e:
                             print(e, 'level2')
                             pass
@@ -176,12 +173,11 @@ def update_adv_company(db: Session) -> None:
                 exist.company_name = info['name']
                 db.add(exist)
                 db.commit()
-                print("UPDATED! promo name")
+                logger.info(f"UPDATED! promo name {exist.company_name}")
                 
     except Exception as e:
-        print(e)
+        logger.error(f"Company error {e}")
         
-    print("TOKEN")
 
 
 def update_orders(db: Session) -> None:
@@ -195,24 +191,21 @@ def update_orders(db: Session) -> None:
             }).json()
             for order in orders:
                 try:
-                    print("WHy")
                     exist_order = db.query(Order).filter(Order.gNumber==order['gNumber'], Order.srid==order['srid']).first()
-                    print("THE HELL!")
                     if not exist_order:
                         db_order = Order(**order)
-                        print("ORDER CREATED!")
                         db_order.user_id = user.id
                         db.add(db_order)
                         db.commit()
-                        print("ORDER SAVED!")
+                        logger.info("ORDER SAVED!")
                     else:
-                        print("order is alreade saved! " + order['gNumber'])
+                        logger.info("order is alreade saved! " + order['gNumber'])
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
             # print(orders[0])
             # print(user.token)
     except Exception as e:
-        print(e)
+        logger.error(e)
         
     print("TOKEN")
     """Pretend this function deletes expired tokens from the database"""
@@ -246,9 +239,7 @@ def update_stats(db: Session) -> None:
                     stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
                         'Authorization': user.token
                     }, json=body)
-                    print(stats.json())
                     repeat_index = 0
-                    print(stats.status_code)
                     while stats.status_code !=200:
                         if repeat_index==3:
                             print(f"breaking date {date}")
@@ -286,16 +277,14 @@ def update_stats(db: Session) -> None:
 
                         db.add(db_stat)
                         db.commit()
-                        print(f"SAVING {date}")
+                        logger.info(f"SAVING {date}")
 
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         
-    print("TOKEN")
 
 def update_key_word_stat(db: Session) -> None:
-    print("ha!")
     try:
         users = db.query(User).all()
         for user in users:
@@ -310,10 +299,10 @@ def update_key_word_stat(db: Session) -> None:
                 for date_stat in keyword_stat:
                     for key_word in date_stat['stat']:
                         exist = db.query(KeyWordsStats).filter(KeyWordsStats.date==date_stat['date'], KeyWordsStats.user_id==user.id, KeyWordsStats.advert_id==promo_db.advertId, KeyWordsStats.keyword==key_word['keyword']).first()
-                        if exist:
-                            print("ALREADY EXISTS")
-                            continue
-                        db_ks = KeyWordsStats()
+                        # if exist:
+                        #     logger.info("ALREADY EXISTS")
+                        #     continue
+                        db_ks = KeyWordsStats() if not exist else exist
                         db_ks.advert_id = promo_db.advertId
                         db_ks.keyword = key_word['keyword']
                         db_ks.clicks = key_word['clicks']
@@ -323,14 +312,12 @@ def update_key_word_stat(db: Session) -> None:
                         db_ks.date = date_stat['date']
                         db.add(db_ks)
                         db.commit()
-                        print("ADD NEW PROMO STAT")
+                        logger.info(f"ADD NEW KEY WORD STAT {db_ks.date} {db_ks.advert_id}")
     except Exception as e:
         print(e, 'some error here!')
         
-    print("TOKEN")    
 
 def update_stocks(db: Session) -> None:
-    print("ha")
     try:
         users = db.query(User).all()
         for user in users:
@@ -341,7 +328,6 @@ def update_stocks(db: Session) -> None:
             while stocks.status_code !=200:
                 if repeat_index==3:
                     break
-                print("REPATING Request")
                 sleep(10)
                 stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
                     'Authorization': user.token
@@ -349,9 +335,9 @@ def update_stocks(db: Session) -> None:
                 repeat_index+=1
             stocks = stocks.json()
             for stock in stocks:
-                existing_stock =  db.query(Stocks).filter(Stocks.warehouseName==stock['warehouseName'], Stocks.nmId==stock['nmId']).first()
+                existing_stock: Stocks =  db.query(Stocks).filter(Stocks.warehouseName==stock['warehouseName'], Stocks.nmId==stock['nmId']).first()
                 if existing_stock:
-                    print("UPDATING")
+                    logger.info(f"UPDATING {existing_stock.id}")
                 db_stock = existing_stock if existing_stock else Stocks()
                 db_stock.lastChangeDate = stock['lastChangeDate']
                 db_stock.warehouseName = stock['warehouseName']
@@ -368,25 +354,24 @@ def update_stocks(db: Session) -> None:
                 db_stock.isSupply = stock['isSupply']
                 db_stock.isRealization = stock['isRealization']
                 db_stock.SCCode = stock['SCCode']
-                print("saving stock")
+                logger.info("saving stock")
                 db.add(db_stock)
                 db.commit()
                 # print("SAVED")
 
     except Exception as e:
-        print(e)
+        logger.error(e)
         
-    print("TOKEN")
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
+@repeat_every(seconds=60*60*3)  # 1 hour
 def update_adv_company_task() -> None:
     with sessionmaker.context_session() as db:
         try:
             update_adv_company(db=db)
         except Exception as e:
-            print('ERROR',e)
+            logger.error(f'ERROR adv {e}')
 
 
 @app.on_event("startup")
@@ -410,7 +395,7 @@ def update_stats_task() -> None:
         print(e, "ERROR")
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
+@repeat_every(seconds=60*60*4)  # 1 hour
 def update_stats_task() -> None:
     try:
         with sessionmaker.context_session() as db:
@@ -420,7 +405,7 @@ def update_stats_task() -> None:
 
 
 @app.on_event("startup")
-@repeat_every(seconds=60*60*8)  # 1 hour
+@repeat_every(seconds=60*60*5)  # 1 hour
 def update_orders_task() -> None:
     try:
         with sessionmaker.context_session() as db:
