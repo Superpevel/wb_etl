@@ -28,12 +28,14 @@ from sqlalchemy import Date, cast
 from sqlalchemy.sql import func
 from asyncio import sleep
 import platform
+from tasks.update_stats import update_stats
+
 load_dotenv()
+
 database_uri = os.environ.get('DATABASE_URL')
 
 sessionmaker = FastAPISessionMaker(database_uri)
 
-load_dotenv()
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -211,78 +213,6 @@ def update_orders(db: Session) -> None:
     print("TOKEN")
     """Pretend this function deletes expired tokens from the database"""
 
-async def update_stats(db: Session) -> None:
-    try:
-        users = db.query(User).all()
-        for user in users:
-            base = datetime.datetime.today()
-            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1, 15)]
-            for date in date_list:
-                start = f"{date} 0:00:00"
-                end = f"{date} 23:59:59"
-                print(start, end)
-                existing_stat = db.query(Stats).filter(Stats.date==date).first()
-
-                body = {
-                    "timezone": "Europe/Moscow",
-                    "period": {
-                        "begin": start,
-                        "end": end
-                    },
-                    "orderBy": {
-                        "field": "ordersSumRub",
-                        "mode": "asc"
-                    },
-                    "page": 1
-                }
-                stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
-                    'Authorization': user.token
-                }, json=body)
-                repeat_index = 0
-                while stats.status_code !=200:
-                    if repeat_index==5:
-                        print(f"breaking date {date}")
-                        break
-                    print("REPATING Request")
-                    await sleep(10)
-                    stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
-                        'Authorization': user.token
-                    }, json=body)
-                    repeat_index+=1
-                
-                stats = stats.json()
-                for card in stats['data']['cards']:
-                    db_stat = Stats() if not existing_stat else existing_stat
-                    db_stat.date = date
-                    db_stat.nmId = card['nmID']
-                    db_stat.vendorCode = card['vendorCode']
-                    db_stat.brandName = card['brandName']
-
-
-                    db_stat.openCardCount  = card['statistics']['selectedPeriod']['openCardCount']
-                    db_stat.addToCartCount  = card['statistics']['selectedPeriod']['addToCartCount']
-                    
-                    db_stat.ordersCount  = card['statistics']['selectedPeriod']['ordersCount']
-                    db_stat.ordersSumRub  = card['statistics']['selectedPeriod']['ordersSumRub']
-                    db_stat.buyoutsCount  = card['statistics']['selectedPeriod']['buyoutsCount']
-                    db_stat.avg_price_rub= card['statistics']['selectedPeriod']['avgPriceRub']
-                    db_stat.buyoutsSumRub  = card['statistics']['selectedPeriod']['buyoutsSumRub']
-                    db_stat.cancelCount  = card['statistics']['selectedPeriod']['cancelCount']
-                    db_stat.cancelSumRub  = card['statistics']['selectedPeriod']['cancelSumRub']
-
-                    db_stat.addToCartPercent  = card['statistics']['selectedPeriod']['conversions']['addToCartPercent']
-                    db_stat.cartToOrderPercent  = card['statistics']['selectedPeriod']['conversions']['cartToOrderPercent']
-                    db_stat.buyoutsPercent  = card['statistics']['selectedPeriod']['conversions']['buyoutsPercent']
-
-                    db.add(db_stat)
-                    db.commit()
-                    logger.info(f"SAVING {date}")
-
-
-    except Exception as e:
-        logger.error(e)
-        
-
 def update_key_word_stat(db: Session) -> None:
     try:
         users = db.query(User).all()
@@ -363,25 +293,25 @@ def update_stocks(db: Session) -> None:
         
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60)  # 1 hour
-def update_adv_company_task() -> None:
-    with sessionmaker.context_session() as db:
-        try:
-            update_adv_company(db=db)
-        except Exception as e:
-            logger.error(f'ERROR adv {e}')
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60)  # 1 hour
+# def update_adv_company_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             update_adv_company(db=db)
+#         except Exception as e:
+#             logger.error(f'ERROR adv {e}')
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60)  # 1 hour
-def update_promo_stats_task() -> None:
-    with sessionmaker.context_session() as db:
-        try:
-            print("START UPDATING STATS")
-            update_adv_stats(db=db)
-        except Exception as e:
-            print('error',e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60)  # 1 hour
+# def update_promo_stats_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             print("START UPDATING STATS")
+#             update_adv_stats(db=db)
+#         except Exception as e:
+#             print('error',e)
 
 
 @app.on_event("startup")
@@ -389,40 +319,41 @@ def update_promo_stats_task() -> None:
 async def update_stats_task() -> None:
     try:
         with sessionmaker.context_session() as db:
+            print("START updating stats")
             await update_stats(db=db)
     except Exception as e:
         print(e, "ERROR")
 
-@app.on_event("startup")
-@repeat_every(seconds=60*30)  # 1 hour
-def update_stocks_task() -> None:
-    try:
-        with sessionmaker.context_session() as db:
-            update_stocks(db=db)
-            logger.info("UPDATING STOCKS")
-    except Exception as e:
-        print(e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*30)  # 1 hour
+# def update_stocks_task() -> None:
+#     try:
+#         with sessionmaker.context_session() as db:
+#             update_stocks(db=db)
+#             logger.info("UPDATING STOCKS")
+#     except Exception as e:
+#         print(e)
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60)  # 1 hour
-def update_orders_task() -> None:
-    try:
-        with sessionmaker.context_session() as db:
-            update_orders(db=db)
-    except Exception as e:
-        print(e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60)  # 1 hour
+# def update_orders_task() -> None:
+#     try:
+#         with sessionmaker.context_session() as db:
+#             update_orders(db=db)
+#     except Exception as e:
+#         print(e)
 
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60)  # 1 hour
-def update_adv_work_stat_task() -> None:
-    with sessionmaker.context_session() as db:
-        try:
-            update_key_word_stat(db=db)
-        except Exception as e:
-            print('ERROR',e)
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60)  # 1 hour
+# def update_adv_work_stat_task() -> None:
+#     with sessionmaker.context_session() as db:
+#         try:
+#             update_key_word_stat(db=db)
+#         except Exception as e:
+#             print('ERROR',e)
 
 
 if __name__ == "__main__":
