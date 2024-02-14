@@ -29,6 +29,7 @@ class Stocks(Base):
     isSupply = Column(Boolean)
     isRealization = Column(Boolean)
     SCCode = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"))
 
 
     def __repr__(self):

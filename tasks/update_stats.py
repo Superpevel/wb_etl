@@ -86,7 +86,7 @@ async def update_stats(db: Session) -> None:
                     db_stat.addToCartPercent  = card['statistics']['selectedPeriod']['conversions']['addToCartPercent']
                     db_stat.cartToOrderPercent  = card['statistics']['selectedPeriod']['conversions']['cartToOrderPercent']
                     db_stat.buyoutsPercent  = card['statistics']['selectedPeriod']['conversions']['buyoutsPercent']
-
+                    db_stat.user_id = user.id
                     db.add(db_stat)
                     db.commit()
                     logger.info(f"SAVING {date}")

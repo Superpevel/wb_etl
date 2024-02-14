@@ -30,5 +30,7 @@ class Stats(Base):
     cartToOrderPercent = Column(Float)
     buyoutsPercent = Column(Float)
     avg_price_rub = Column(Float)
+    user_id = Column(Integer, ForeignKey("users.id"))
+
     def __repr__(self):
         return '<Stats %r>' % self.id

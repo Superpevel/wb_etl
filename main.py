@@ -29,7 +29,7 @@ from sqlalchemy.sql import func
 from asyncio import sleep
 import platform
 from tasks.update_stats import update_stats
-
+from tasks.update_stocks import update_stocks
 load_dotenv()
 
 database_uri = os.environ.get('DATABASE_URL')
@@ -246,72 +246,25 @@ def update_key_word_stat(db: Session) -> None:
         print(e, 'some error here!')
         
 
-def update_stocks(db: Session) -> None:
-    try:
-        users = db.query(User).all()
-        for user in users:
-            stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
-                'Authorization': user.token
-            })
-            repeat_index = 0
-            while stocks.status_code !=200:
-                if repeat_index==3:
-                    break
-                sleep(10)
-                stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
-                    'Authorization': user.token
-                })
-                repeat_index+=1
-            stocks = stocks.json()
-            for stock in stocks:
-                existing_stock: Stocks =  db.query(Stocks).filter(Stocks.warehouseName==stock['warehouseName'], Stocks.nmId==stock['nmId']).first()
-                if existing_stock:
-                    logger.info(f"UPDATING {existing_stock.id}")
-                db_stock = existing_stock if existing_stock else Stocks()
-                db_stock.lastChangeDate = stock['lastChangeDate']
-                db_stock.warehouseName = stock['warehouseName']
-                db_stock.supplierArticle = stock['supplierArticle']
-                db_stock.nmId = stock['nmId']
-                db_stock.barcode = stock['barcode']
-                db_stock.quantity = stock['quantity']
-                db_stock.inWayToClient = stock['inWayToClient']
-                db_stock.inWayFromClient = stock['inWayFromClient']
-                db_stock.quantityFull = stock['quantityFull']
-                db_stock.techSize = stock['techSize']
-                db_stock.Price = stock['Price']
-                db_stock.Discount = stock['Discount']
-                db_stock.isSupply = stock['isSupply']
-                db_stock.isRealization = stock['isRealization']
-                db_stock.SCCode = stock['SCCode']
-                logger.info("saving stock")
-                db.add(db_stock)
-                db.commit()
-                # print("SAVED")
-
-    except Exception as e:
-        logger.error(e)
-        
+@app.on_event("startup")
+@repeat_every(seconds=60*60)  # 1 hour
+def update_adv_company_task() -> None:
+    with sessionmaker.context_session() as db:
+        try:
+            update_adv_company(db=db)
+        except Exception as e:
+            logger.error(f'ERROR adv {e}')
 
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60)  # 1 hour
-# def update_adv_company_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         try:
-#             update_adv_company(db=db)
-#         except Exception as e:
-#             logger.error(f'ERROR adv {e}')
-
-
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60)  # 1 hour
-# def update_promo_stats_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         try:
-#             print("START UPDATING STATS")
-#             update_adv_stats(db=db)
-#         except Exception as e:
-#             print('error',e)
+@app.on_event("startup")
+@repeat_every(seconds=60*60)  # 1 hour
+def update_promo_stats_task() -> None:
+    with sessionmaker.context_session() as db:
+        try:
+            print("START UPDATING STATS")
+            update_adv_stats(db=db)
+        except Exception as e:
+            print('error',e)
 
 
 @app.on_event("startup")
@@ -324,36 +277,36 @@ async def update_stats_task() -> None:
     except Exception as e:
         print(e, "ERROR")
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*30)  # 1 hour
-# def update_stocks_task() -> None:
-#     try:
-#         with sessionmaker.context_session() as db:
-#             update_stocks(db=db)
-#             logger.info("UPDATING STOCKS")
-#     except Exception as e:
-#         print(e)
+@app.on_event("startup")
+@repeat_every(seconds=60*30)  # 1 hour
+async def update_stocks_task() -> None:
+    try:
+        with sessionmaker.context_session() as db:
+            await update_stocks(db=db)
+            logger.info("UPDATING STOCKS")
+    except Exception as e:
+        print(e)
 
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60)  # 1 hour
-# def update_orders_task() -> None:
-#     try:
-#         with sessionmaker.context_session() as db:
-#             update_orders(db=db)
-#     except Exception as e:
-#         print(e)
+@app.on_event("startup")
+@repeat_every(seconds=60*60)  # 1 hour
+def update_orders_task() -> None:
+    try:
+        with sessionmaker.context_session() as db:
+            update_orders(db=db)
+    except Exception as e:
+        print(e)
 
 
 
-# @app.on_event("startup")
-# @repeat_every(seconds=60*60)  # 1 hour
-# def update_adv_work_stat_task() -> None:
-#     with sessionmaker.context_session() as db:
-#         try:
-#             update_key_word_stat(db=db)
-#         except Exception as e:
-#             print('ERROR',e)
+@app.on_event("startup")
+@repeat_every(seconds=60*60)  # 1 hour
+def update_adv_work_stat_task() -> None:
+    with sessionmaker.context_session() as db:
+        try:
+            update_key_word_stat(db=db)
+        except Exception as e:
+            print('ERROR',e)
 
 
 if __name__ == "__main__":
