@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from fastapi_utils.session import FastAPISessionMaker
 import requests 
 import datetime
-from asyncio import sleep
+from time import sleep
 from models import Stats
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -29,12 +29,10 @@ async def update_stats(db: Session) -> None:
         users = db.query(User).all()
         for user in users:
             base = datetime.datetime.today()
-            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1, 15)]
+            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1,10)]
             for date in date_list:
                 start = f"{date} 0:00:00"
                 end = f"{date} 23:59:59"
-                print(start, end)
-                existing_stat = db.query(Stats).filter(Stats.date==date).first()
 
                 body = {
                     "timezone": "Europe/Moscow",
@@ -56,8 +54,8 @@ async def update_stats(db: Session) -> None:
                     if repeat_index==5:
                         print(f"breaking date {date}")
                         break
-                    print("REPATING Request")
-                    await sleep(10)
+                    print(f"REPATING Request, {date}")
+                    sleep(10)
                     stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
                         'Authorization': user.token
                     }, json=body)
@@ -65,7 +63,10 @@ async def update_stats(db: Session) -> None:
                 
                 stats = stats.json()
                 for card in stats['data']['cards']:
-                    db_stat = Stats() if not existing_stat else existing_stat
+                    existing_stat = db.query(Stats).filter(Stats.date==date, Stats.user_id==user.id, Stats.nmId==card['nmID']).first()
+                    db_stat = existing_stat if existing_stat else  Stats()
+                    if existing_stat:
+                        print("STAT EXISTS")
                     db_stat.date = date
                     db_stat.nmId = card['nmID']
                     db_stat.vendorCode = card['vendorCode']
