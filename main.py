@@ -204,7 +204,7 @@ def update_everything_task() -> None:
 
 @app.get('/start_update')
 def get_start_update(background_tasks: BackgroundTasks):
-    background_tasks.add_task(update_everything, message="some notification")
+    background_tasks.add_task(update_everything)
     return {"message": "Task sent in the background"}
 
 
