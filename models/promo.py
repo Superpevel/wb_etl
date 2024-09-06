@@ -5,6 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, BigInteger, Boolean, TIMESTAMP, Float
+from sqlalchemy.orm import relationship
+
 from db.db_conf import Base
 
 load_dotenv()
@@ -18,6 +20,9 @@ class Promo(Base):
     status = Column(Integer)
     user_id = Column(Integer, ForeignKey("users.id"))
     company_name = Column(String)
+
+    promo_stats = relationship("PromoStats", cascade="all,delete", backref="parent")
+    key_words_stats = relationship("KeyWordsStats", cascade="all,delete", backref="parent")
 
     def __repr__(self):
         return '<Promo %r>' % self.advertId

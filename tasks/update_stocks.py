@@ -25,9 +25,11 @@ from models import Stats, Stocks
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
 
-async def update_stocks(db: Session) -> None:
+def update_stocks(db: Session) -> None:
     try:
+        print("HM")
         users = db.query(User).all()
+        print(1)
         for user in users:
             stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
                 'Authorization': user.token
@@ -36,7 +38,7 @@ async def update_stocks(db: Session) -> None:
             while stocks.status_code !=200:
                 if repeat_index==3:
                     break
-                sleep(10)
+                sleep(60)
                 stocks = requests.get("https://statistics-api.wildberries.ru/api/v1/supplier/stocks?dateFrom=2023-12-10", headers={
                     'Authorization': user.token
                 })
@@ -69,5 +71,6 @@ async def update_stocks(db: Session) -> None:
                 # print("SAVED")
 
     except Exception as e:
+        print(e)
         logger.error(e)
         

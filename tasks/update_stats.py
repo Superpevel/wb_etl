@@ -22,14 +22,22 @@ import datetime
 from time import sleep
 from models import Stats
 logging.config.dictConfig(LOGGING_CONFIG)
+from sqlalchemy.sql import func
+
 logger = logging.getLogger(__name__)
 
-async def update_stats(db: Session) -> None:
+def update_stats(db: Session, days=10) -> None:
     try:
         users = db.query(User).all()
+
+        stats_exist = db.query(Stats).all()
+        for stat_exist in stats_exist:
+            db.delete(stat_exist)
+        db.commit()
+
         for user in users:
             base = datetime.datetime.today()
-            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1,10)]
+            date_list = [(base - datetime.timedelta(days=x)).strftime('%Y-%m-%d') for x in range(1,days)]
             for date in date_list:
                 start = f"{date} 0:00:00"
                 end = f"{date} 23:59:59"
@@ -46,27 +54,31 @@ async def update_stats(db: Session) -> None:
                     },
                     "page": 1
                 }
-                stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
+                stats = requests.post("https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail", headers={
                     'Authorization': user.token
                 }, json=body)
+
                 repeat_index = 0
                 while stats.status_code !=200:
                     if repeat_index==5:
                         print(f"breaking date {date}")
                         break
-                    print(f"REPATING Request, {date}")
-                    sleep(10)
+                    print("SLEEPING..." )
+                    print(stats.json())
+                    sleep(60)
                     stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
                         'Authorization': user.token
                     }, json=body)
                     repeat_index+=1
+                    print("SLEEPING...")
                 
                 stats = stats.json()
+                i = 0
                 for card in stats['data']['cards']:
-                    existing_stat = db.query(Stats).filter(Stats.date==date, Stats.user_id==user.id, Stats.nmId==card['nmID']).first()
-                    db_stat = existing_stat if existing_stat else  Stats()
-                    if existing_stat:
-                        print("STAT EXISTS")
+                    # existing_stat = db.query(Stats).filter(func.date_trunc('day', Stats.date)==func.date_trunc('day', date), Stats.user_id==user.id, Stats.nmId==card['nmID']).first()
+                    db_stat = Stats()
+                    # if existing_stat:
+                    #     print("STAT EXISTS")
                     db_stat.date = date
                     db_stat.nmId = card['nmID']
                     db_stat.vendorCode = card['vendorCode']
@@ -90,9 +102,14 @@ async def update_stats(db: Session) -> None:
                     db_stat.user_id = user.id
                     db.add(db_stat)
                     db.commit()
-                    logger.info(f"SAVING {date}")
+                    i+=1
+                    print(i)
+                print("SAVED I")
 
+                    # logger.info(f"SAVING {date}")
+        print("SAVED")   
 
     except Exception as e:
+        print(e, "ERROR HERE!")
         logger.error(e)
         
