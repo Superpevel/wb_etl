@@ -32,6 +32,7 @@ from tasks.update_stats import update_stats
 from tasks.update_stocks import update_stocks
 from tasks.update_promo_stats import update_adv_stats
 from tasks.update_adv_company import update_adv_company
+from fastapi import BackgroundTasks
 
 load_dotenv()
 
@@ -171,9 +172,7 @@ def update_key_word_stat(db: Session) -> None:
         print(e, 'some error here!')
         
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
-def update_adv_company_task() -> None:
+def update_everything():
     today = datetime.date.today()
     week_ago = today - datetime.timedelta(days=7)
 
@@ -197,6 +196,16 @@ def update_adv_company_task() -> None:
         except Exception as e:
             logger.error(f'ERROR adv {e}')
 
+
+@app.on_event("startup")
+@repeat_every(seconds=60*60*12)  # 1 hour
+def update_everything_task() -> None:
+    update_everything()
+
+@app.get('/start_update')
+def get_start_update(background_tasks: BackgroundTasks):
+    background_tasks.add_task(update_everything, message="some notification")
+    return {"message": "Task sent in the background"}
 
 
 # def clear_stats(db: Session):
