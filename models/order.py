@@ -42,6 +42,6 @@ class Order(Base):
     gNumber =  Column(String())
     srid = Column(String())
     user_id = Column(Integer, ForeignKey("users.id"))
-
+    warehouseType = Column(String())
     def __repr__(self):
         return '<Order %r>' % self.id

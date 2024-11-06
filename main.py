@@ -26,7 +26,7 @@ import datetime
 from dateutil.parser import parse
 from sqlalchemy import Date, cast
 from sqlalchemy.sql import func
-from asyncio import sleep
+from time import sleep
 import platform
 from tasks.update_stats import update_stats
 from tasks.update_stocks import update_stocks
@@ -123,7 +123,7 @@ def update_orders(db: Session, date_from) -> None:
     print("TOKEN")
     """Pretend this function deletes expired tokens from the database"""
 
-def update_key_word_stat(db: Session) -> None:
+def update_key_word_stat(db: Session, from_time, to) -> None:
     try:
         users = db.query(User).all()
         orders = db.query(KeyWordsStats).all()
@@ -134,25 +134,23 @@ def update_key_word_stat(db: Session) -> None:
         for user in users:
             promos_db: List[Promo] = db.query(Promo).filter(Promo.user_id==user.id).all()
             for promo_db in promos_db:
-                keyword_stat = requests.get(f"https://advert-api.wb.ru/adv/v2/auto/daily-words?id={promo_db.advertId}", headers={
+                keyword_stat = requests.get(f"https://advert-api.wildberries.ru/adv/v0/stats/keywords?advert_id={promo_db.advertId}&from={from_time}&to={to}", headers={
                     'Authorization': user.token
                 })
-
                 repeat_index = 0
                 while keyword_stat.status_code !=200:
                     if repeat_index==5:
                         print(f"breaking date ")
                         break
                     sleep(60)
-                    keyword_stat = requests.get(f"https://advert-api.wb.ru/adv/v2/auto/daily-words?id={promo_db.advertId}", headers={
+                    keyword_stat = requests.get(f"https://advert-api.wildberries.ru/adv/v0/stats/keywords?advert_id={promo_db.advertId}", headers={
                         'Authorization': user.token
                     })
                     repeat_index+=1
 
                 keyword_stat = keyword_stat.json()
-
-                for date_stat in keyword_stat:
-                    for key_word in date_stat['stat']:
+                for date_stat in keyword_stat['keywords']:
+                    for key_word in date_stat['stats']:
                         # exist = db.query(KeyWordsStats).filter(KeyWordsStats.date==date_stat['date'], KeyWordsStats.user_id==user.id, KeyWordsStats.advert_id==promo_db.advertId, KeyWordsStats.keyword==key_word['keyword']).first()
                         # if exist:
                         #     logger.info("ALREADY EXISTS")
@@ -174,7 +172,7 @@ def update_key_word_stat(db: Session) -> None:
 
 def update_everything():
     today = datetime.date.today()
-    week_ago = today - datetime.timedelta(days=7)
+    week_ago = today - datetime.timedelta(days=6)
 
     with sessionmaker.context_session() as db:
         try:
@@ -191,7 +189,7 @@ def update_everything():
             update_orders(db, week_ago)
             print("FINISH PARSING ORDERS")
 
-            update_key_word_stat(db=db)
+            update_key_word_stat(db=db, from_time=week_ago, to=today)
             print("FINISHED TASKS")
         except Exception as e:
             logger.error(f'ERROR adv {e}')

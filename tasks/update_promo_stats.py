@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from fastapi_utils.session import FastAPISessionMaker
 import requests 
 import datetime
-from asyncio import sleep
+from time import sleep
 from models import Stats, PromoStats, Promo, Order
 from dateutil import parser
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -33,14 +33,14 @@ logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
-def update_adv_stats(db: Session, days=10) -> None:
+def update_adv_stats(db: Session, days=40) -> None:
     try:
         users = db.query(User).all()
         p_stats =  db.query(PromoStats).all()
         for p_stat in p_stats:
             db.delete(p_stat)
         db.commit()
-        print("1")
+        # print("1")
         for user in users:
             promos: List[Promo] = db.query(Promo).filter(Promo.user_id==user.id).all()
             body = []
@@ -60,7 +60,7 @@ def update_adv_stats(db: Session, days=10) -> None:
                 headers={
                 'Authorization': user.token
             })
-
+            # print(promo_stats.text)
             repeat_index = 0
             while promo_stats.status_code !=200:
                 if repeat_index==5:
@@ -72,11 +72,14 @@ def update_adv_stats(db: Session, days=10) -> None:
                     headers={
                     'Authorization': user.token
                 })
+                # print(promo_stats)
                 repeat_index+=1
-    
+
             promo_stats = promo_stats.json()
             result = {}
     
+            print("HEre?2")
+
             for stat in promo_stats:
                 advert_id = stat['advertId']
                 if not result.get(advert_id):
@@ -89,17 +92,21 @@ def update_adv_stats(db: Session, days=10) -> None:
                     result[advert_id].update({date: {}})
                     for app in day['apps']:
                         for nm in app['nm']:
-                            if result[advert_id][date].get(nm['nmId']):
-                                result[advert_id][date][nm['nmId']]['clicks']+= nm['clicks']
-                                result[advert_id][date][nm['nmId']]['views']+= nm['views']
-                                result[advert_id][date][nm['nmId']]['sum']+= nm['sum']
-                            else:
-                                 result[advert_id][date].update({nm['nmId']: {'clicks': nm['clicks'], 'sum': nm['sum'], 'views': nm['views']}})
-            with open('result.json', 'w') as file:
-                file.write(json.dumps(result))
-            print("3")
+                            try:
+                                if result[advert_id][date].get(nm['nmId']):
+                                    result[advert_id][date][nm['nmId']]['clicks']+= nm['clicks']
+                                    result[advert_id][date][nm['nmId']]['views']+= nm['views']
+                                    result[advert_id][date][nm['nmId']]['sum']+= nm['sum']
+                                else:
+                                    result[advert_id][date].update({nm['nmId']: {'clicks': nm['clicks'], 'sum': nm['sum'], 'views': nm['views']}})
+                            except Exception as e:
+                                print(nm, e, app)
+            # with open('result.json', 'w') as file:
+            #     file.write(json.dumps(result))
+            # print("3")
             # return
             # # print(result)
+            print("HEre?")
             for advCom,dates in result.items():
                 try:
                     for date, nms in dates.items():
