@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, BigInteger, Boolean, TIMESTAMP
+from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, BigInteger, Boolean, TIMESTAMP, FLOAT
 from db.db_conf import Base
 
 load_dotenv()
@@ -18,6 +18,9 @@ class User(Base):
     password = Column(String(800), nullable=False)
     email = Column(String(1000), nullable=True)
     token = Column(String(), nullable=False)
+
+    localization_index = Column(Integer)
+    localization_percentage = Column(FLOAT) 
 
     def __repr__(self):
         return '<User %r>' % self.id

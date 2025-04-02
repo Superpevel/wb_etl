@@ -32,7 +32,11 @@ from tasks.update_stats import update_stats
 from tasks.update_stocks import update_stocks
 from tasks.update_promo_stats import update_adv_stats
 from tasks.update_adv_company import update_adv_company
+from tasks.update_index import update_localization_index
 from fastapi import BackgroundTasks
+
+from api.api import router as api_router
+
 
 load_dotenv()
 
@@ -47,6 +51,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI()
 origins = ["*"]
+app.include_router(api_router)
 
 @app.middleware('http')
 def catch_exceptions_middleware(request: Request, call_next):
@@ -176,6 +181,7 @@ def update_everything():
 
     with sessionmaker.context_session() as db:
         try:
+            print("STARTING!")
             update_adv_company(db=db) # add repeat
             print("FINISH PARSING ADV COMPANIES")
             update_adv_stats(db=db) # add repeat
@@ -195,15 +201,26 @@ def update_everything():
             logger.error(f'ERROR adv {e}')
 
 
-@app.on_event("startup")
-@repeat_every(seconds=60*60*12)  # 1 hour
+
+# @app.on_event("startup")
+# @repeat_every(seconds=60*60*12)  # 1 hour
 def update_everything_task() -> None:
     update_everything()
 
+
+    
 @app.get('/start_update')
 def get_start_update(background_tasks: BackgroundTasks):
     background_tasks.add_task(update_everything)
     return {"message": "Task sent in the background"}
+
+
+@app.get('/localization_index')
+def get_start_update():
+    with sessionmaker.context_session() as db:
+        update_localization_index(db)
+    return {"message": "Task sent in the background"}
+
 
 
 # def clear_stats(db: Session):
@@ -238,9 +255,9 @@ if __name__ == "__main__":
     # print( platform.platform())
     if 'macOS' in platform.platform():
         print("AS")
-        uvicorn.run('main:app', host="0.0.0.0", port=8007, reload=True, debug=True)
+        uvicorn.run('main:app', host="0.0.0.0", port=8008, reload=True, debug=True)
     else:
-        uvicorn.run('main:app', host="0.0.0.0", port=8007, reload=False, debug=False)
+        uvicorn.run('main:app', host="0.0.0.0", port=8008, reload=False, debug=False)
 
 
 

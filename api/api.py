@@ -9,6 +9,8 @@ from models import *
 from schemas.request_schemas.card_request import UserRegister,UserLogin
 from models.user import User
 import jwt
+from api.v1.product.product import router as product_router, unit_router
+from api.v1.competitors.competitors_crud import competitors_router
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,13 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@app.post('/register')
+
+router.include_router(unit_router)
+router.include_router(product_router)
+router.include_router(competitors_router)
+
+
+@router.post('/register')
 def register(request: UserRegister, db: Session=Depends(get_db)):
     user = db.query(User).filter(User.login==request.login).first()
     if user:
@@ -33,7 +41,7 @@ def register(request: UserRegister, db: Session=Depends(get_db)):
     db.refresh(user)
     return user
 
-@app.post('/login')
+@router.post('/login')
 def login(request: UserLogin, db: Session=Depends(get_db)):
     user = db.query(User).filter(User.login==request.login,User.password==request.password).first()
     if not user:

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from fastapi_utils.session import FastAPISessionMaker
 import requests 
 import datetime
-from asyncio import sleep
+from time import sleep
 from models import Stats, PromoStats, Promo, Order
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -51,6 +51,7 @@ def update_adv_company(db: Session) -> None:
                 if repeat_index==5:
                     print(f"breaking")
                     break
+                print("sleeping ")
                 sleep(60)
                 promos = requests.get("https://advert-api.wb.ru/adv/v1/promotion/count", headers={
                     'Authorization': user.token
