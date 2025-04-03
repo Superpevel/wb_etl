@@ -22,6 +22,7 @@ class Order(Base):
     regionName = Column(String)
     supplierArticle = Column(String(), nullable=False)
     nmId = Column(Integer)
+    product_id =  Column(Integer, ForeignKey("products.id"))
     barcode = Column(String(), nullable=False)
     category = Column(String(), nullable=False)
     subject =  Column(String(), nullable=False)

@@ -18,6 +18,7 @@ class Stocks(Base):
     warehouseName = Column(String)
     supplierArticle = Column(String)
     nmId =  Column(Integer)
+    product_id =  Column(Integer, ForeignKey("products.id"))
     barcode = Column(String)
     quantity = Column(Integer)
     inWayToClient = Column(Integer)

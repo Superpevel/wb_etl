@@ -38,6 +38,7 @@ class PromoStats(Base):
     cpc = Column(Integer)
     views = Column(Integer)
     nmId =  Column(Integer)
+    product_id =  Column(Integer, ForeignKey("products.id"))
     sum =  Column(Float)
     date_order_sum = Column(Float)
     drr = Column(Float)

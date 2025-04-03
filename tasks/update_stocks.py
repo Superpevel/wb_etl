@@ -20,7 +20,7 @@ from fastapi_utils.session import FastAPISessionMaker
 import requests 
 import datetime
 from asyncio import sleep
-from models import Stats, Stocks
+from models import Stats, Stocks, Product
 
 logging.config.dictConfig(LOGGING_CONFIG)
 logger = logging.getLogger(__name__)
@@ -65,6 +65,9 @@ def update_stocks(db: Session) -> None:
                 db_stock.isRealization = stock['isRealization']
                 db_stock.SCCode = stock['SCCode']
                 db_stock.user_id = user.id
+
+                prodcut = db.query(Product).filter(Product.wb_article==str(stock['nmId'])).first()
+                db_stock.product_id = prodcut.id if prodcut else None
                 logger.info("saving stock")
                 db.add(db_stock)
                 db.commit()

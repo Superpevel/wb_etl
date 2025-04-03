@@ -16,6 +16,7 @@ class Stats(Base):
     id = Column(Integer, primary_key=True, index=True)
     date = Column(TIMESTAMP)
     nmId =  Column(Integer)
+    product_id =  Column(Integer, ForeignKey("products.id"))
     vendorCode = Column(String)
     brandName = Column(String)
     openCardCount = Column(Integer)

@@ -23,6 +23,7 @@ from time import sleep
 from models import Stats
 logging.config.dictConfig(LOGGING_CONFIG)
 from sqlalchemy.sql import func
+from models import Product
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +101,9 @@ def update_stats(db: Session, days=10) -> None:
                     db_stat.cartToOrderPercent  = card['statistics']['selectedPeriod']['conversions']['cartToOrderPercent']
                     db_stat.buyoutsPercent  = card['statistics']['selectedPeriod']['conversions']['buyoutsPercent']
                     db_stat.user_id = user.id
+
+                    prodcut = db.query(Product).filter(Product.wb_article==str(card['nmID'])).first()
+                    db_stat.product_id = prodcut.id if prodcut else None
                     db.add(db_stat)
                     db.commit()
                     i+=1

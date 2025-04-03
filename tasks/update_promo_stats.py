@@ -20,7 +20,7 @@ from fastapi_utils.session import FastAPISessionMaker
 import requests 
 import datetime
 from time import sleep
-from models import Stats, PromoStats, Promo, Order
+from models import Stats, PromoStats, Promo, Order, Product
 from dateutil import parser
 logging.config.dictConfig(LOGGING_CONFIG)
 from sqlalchemy.sql import func
@@ -123,6 +123,9 @@ def update_adv_stats(db: Session, days=40) -> None:
                                     db_stat.sum=stats['sum']
                                     db_stat.views=stats['views']
                                     db_stat.nmId=int(nm)    
+                                    
+                                    prodcut = db.query(Product).filter(Product.wb_article==str(nm)).first()
+                                    db_stat.product_id = prodcut.id if prodcut else None
                                     db_stat.date=date
                                     db_stat.user_id=user.id
                                     orders = db.query(func.sum(Order.priceWithDisc).label("TotalOrdersSum")).filter(cast(Order.date, Date)== db_stat.date).first()

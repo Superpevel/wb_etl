@@ -34,9 +34,9 @@ from tasks.update_promo_stats import update_adv_stats
 from tasks.update_adv_company import update_adv_company
 from tasks.update_index import update_localization_index
 from fastapi import BackgroundTasks
-
+from crud.product_crud import product_crud
 from api.api import router as api_router
-
+from models import Product
 
 load_dotenv()
 
@@ -105,14 +105,21 @@ def update_orders(db: Session, date_from) -> None:
                 })
                 repeat_index+=1
             
+            
             orders = orders.json()
 
             for order in orders:
                 try:
                     exist_order = db.query(Order).filter(Order.gNumber==order['gNumber'], Order.srid==order['srid']).first()
                     if not exist_order:
+                        nmId= order['nmId']
                         db_order = Order(**order)
                         db_order.user_id = user.id
+                        # print(product_crud.id_product_by_wb_article(db, nmId), 'looking')
+                    
+                        prodcut = db.query(Product).filter(Product.wb_article==str(nmId)).first()
+                        if prodcut:
+                            db_order.product_id = prodcut.id
                         db.add(db_order)
                         db.commit()
                         logger.info("ORDER SAVED!")

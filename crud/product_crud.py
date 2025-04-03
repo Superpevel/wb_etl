@@ -20,5 +20,9 @@ class ProductCrud(CRUDBase):
         return db.query(self.model).order_by(Product.id.desc()).offset(skip).limit(limit).all()
     pass
 
+    def id_product_by_wb_article(self, db: Session, wb_article):
+        product = db.query(self.model).filter(Product.wb_article==wb_article).first()
+        return None if not product else product.id
+
 
 product_crud = ProductCrud(Product)
