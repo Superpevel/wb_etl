@@ -20,6 +20,8 @@ import os
 import requests
 import datetime
 from models import Competitor
+from tasks.update_concurents_prices import update_prices_history
+
 load_dotenv()
 
 logger = logging.getLogger(__name__)
@@ -73,3 +75,15 @@ competitors_router = SQLAlchemyCRUDRouter(
     prefix='competitor'
 )
 
+
+
+# @competitors_router.get('/parse_competitors')
+# def start_parsing(db: Session=Depends(get_db)):
+#     products = db.query(Product).all()
+
+#     for product in products:
+#         competitors: List[Competitor] = db.query(Competitor).filter(Competitor.product_id==product.id).all()
+#         if not competitors:
+#             continue
+#         # print(competitors)
+#         update_prices_history(db, product, competitors)

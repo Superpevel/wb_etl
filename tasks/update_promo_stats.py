@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
-def update_adv_stats(db: Session, days=40) -> None:
+def update_adv_stats(db: Session, days=31) -> None:
     try:
         users = db.query(User).all()
         p_stats =  db.query(PromoStats).all()
@@ -66,6 +66,10 @@ def update_adv_stats(db: Session, days=40) -> None:
                 if repeat_index==5:
                     print(f"breaking")
                     break
+                print("sleeping promo stats")
+                print(promo_stats.json())
+
+                return
                 sleep(60)
                 promo_stats = requests.post("https://advert-api.wb.ru/adv/v2/fullstats", 
                     json=body,

@@ -11,7 +11,7 @@ from models.user import User
 import jwt
 from api.v1.product.product import router as product_router, unit_router
 from api.v1.competitors.competitors_crud import competitors_router
-
+from api.v1.competitors.competitors_parse import competitor_parse_router
 logger = logging.getLogger(__name__)
 
 router = APIRouter(
@@ -24,6 +24,7 @@ router = APIRouter(
 router.include_router(unit_router)
 router.include_router(product_router)
 router.include_router(competitors_router)
+router.include_router(competitor_parse_router)
 
 
 @router.post('/register')

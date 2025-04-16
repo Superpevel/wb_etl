@@ -5,3 +5,7 @@ to run a project:
 3)poetry install
 4)poetry shell
 5)uvicorn main:app --reload to start a server
+
+Deal with copmetitor prices
+Stocks
+logistics price based on current tarrif and demension 

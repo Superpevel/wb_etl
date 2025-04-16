@@ -69,9 +69,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get('/secured', response_model=SecuredResponse)
+@app.get('/secured')
 def secured(user: User=Depends(get_user_secure)):
-    return user.id
+    return True
 
 @app.get("/")
 async def read_main():
@@ -188,22 +188,22 @@ def update_everything():
 
     with sessionmaker.context_session() as db:
         try:
-            print("STARTING!")
-            update_adv_company(db=db) # add repeat
-            print("FINISH PARSING ADV COMPANIES")
-            update_adv_stats(db=db) # add repeat
-            print("FINISH PARSING ADV STATS")
+            # print("STARTING!")
+            # update_adv_company(db=db) # add repeat
+            # print("FINISH PARSING ADV COMPANIES")
+            # update_adv_stats(db=db) # add repeat
+            # print("FINISH PARSING ADV STATS")
             update_stats(db=db) # add repeat 
-            print("FINISH PARSING STATS")
+            # print("FINISH PARSING STATS")
 
             update_stocks(db=db) # add repeat
-            print("FINISH PARSING STOCKS")
+            # print("FINISH PARSING STOCKS")
 
-            update_orders(db, week_ago)
-            print("FINISH PARSING ORDERS")
+            # update_orders(db, week_ago)
+            # print("FINISH PARSING ORDERS")
 
-            update_key_word_stat(db=db, from_time=week_ago, to=today)
-            print("FINISHED TASKS")
+            # update_key_word_stat(db=db, from_time=week_ago, to=today)
+            # print("FINISHED TASKS")
         except Exception as e:
             logger.error(f'ERROR adv {e}')
 

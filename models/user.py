@@ -21,6 +21,7 @@ class User(Base):
 
     localization_index = Column(Integer)
     localization_percentage = Column(FLOAT) 
+    tax = Column(Integer) 
 
     def __repr__(self):
         return '<User %r>' % self.id

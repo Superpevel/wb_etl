@@ -20,6 +20,7 @@ class CompetitorsCrud(CRUDBase):
     # ) -> List[ModelType]:
     #     return db.query(self.model).order_by(Product.id.desc()).offset(skip).limit(limit).all()
     # pass
+    
 
 
 competitor_crud = CompetitorsCrud(Competitor)

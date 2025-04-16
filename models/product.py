@@ -28,7 +28,7 @@ class Product(Base):
 
     commision_percentage = Column(Integer, default=19)
     logistics_fee = Column(Float, default=70)
-    tax_fee_percentage =  Column(Float, default=1)
+    # tax_fee_percentage =  Column(Float, default=1)
 
     mono_items = Column(Integer, nullable=True)
     box_items = Column(Integer, nullable=True)

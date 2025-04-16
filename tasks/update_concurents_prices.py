@@ -28,6 +28,10 @@ import json
 from sqlalchemy.orm import Session
 import requests 
 from time import sleep
+from models import Product, Competitor, CompetitorPrices
+import datetime
+import requests
+
 logging.config.dictConfig(LOGGING_CONFIG)
 
 logger = logging.getLogger(__name__)
@@ -37,24 +41,26 @@ capabilities["goog:loggingPrefs"] = {"performance": "ALL"}  # chromedriver 75+
 
 options = Options()
 options.add_argument("--disable-infobars") 
-options.add_argument("--headless")
-# options.add_argument("--window-size=1920x1080")
+# options.add_argument("--headless")
+options.add_argument("--window-size=1920x1080")
 
 
-def update_adv_stats(db: Session, item_id: int, rivals_list: list) -> None:
+def update_prices_history(db: Session, prodct: Product, rivals_list: List[Competitor]) -> None:
 
 
     driver: webdriver.Chrome = webdriver.Chrome(ChromeDriverManager().install(), options=options,  desired_capabilities=capabilities)
-
-
-    for link in rivals_list: 
+    for rival in rivals_list: 
+        link = f"https://www.wildberries.ru/catalog/{rival.competitor_nmID}/detail.aspx"
         driver.get(link)
-        sleep(7)
+        print("pre sleep")
+        sleep(10)
 
+        print("HERE?")
+        sleep(25)
+        print("sleep again")
         logs_raw = driver.get_log("performance")
         logs = [json.loads(lr["message"])["message"] for lr in logs_raw]
 
-        import requests
 
         def log_filter(log_):
             return (
@@ -65,8 +71,29 @@ def update_adv_stats(db: Session, item_id: int, rivals_list: list) -> None:
                 "json" in log_["params"]["response"]["mimeType"]
             )
 
+        print("LOGGING")
         for log in filter(log_filter, logs):
             resp_url = log["params"]["response"]["url"]
+            print(resp_url, "RESP URL")
             if 'price-history.json' in resp_url:
+                print("ENTER!!!")
                 price_history = requests.get(resp_url).json()
-                print(price_history)
+                for price in price_history:
+                    print(price_history)
+                # timestamp = 1737849600
+                    
+                    date = datetime.datetime.fromtimestamp(price['dt'])
+                    price_val = price['price']['RUB']
+                    exist = db.query(CompetitorPrices).filter(CompetitorPrices.date==date, CompetitorPrices.competitor_id==rival.id).first()
+                    if exist:
+                        print('exists!')
+                        continue
+
+                    c_price = CompetitorPrices()
+                    c_price.date = date
+                    c_price.price = price_val
+                    c_price.competitor_id = rival.id
+
+                    db.add(c_price)
+                    db.commit()
+                    print("SAVING!")

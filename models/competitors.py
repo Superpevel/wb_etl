@@ -33,7 +33,6 @@ class CompetitorPrices(Base):
     __tablename__ = 'competitor_prices'
 
     id = Column(Integer, primary_key=True, index=True)
-    # competitor_nmID =  Column(String)
     competitor_id = Column(Integer, ForeignKey('competitor.id'))
     competitor = relationship("Competitor", backref="prices")
     date = Column(TIMESTAMP)

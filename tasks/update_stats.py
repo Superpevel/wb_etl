@@ -27,7 +27,7 @@ from models import Product
 
 logger = logging.getLogger(__name__)
 
-def update_stats(db: Session, days=10) -> None:
+def update_stats(db: Session, days=365) -> None:
     try:
         users = db.query(User).all()
 
@@ -67,7 +67,7 @@ def update_stats(db: Session, days=10) -> None:
                     print("SLEEPING..." )
                     print(stats.json())
                     sleep(60)
-                    stats = requests.post("https://suppliers-api.wildberries.ru/content/v1/analytics/nm-report/detail", headers={
+                    stats = requests.post("https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail", headers={
                         'Authorization': user.token
                     }, json=body)
                     repeat_index+=1

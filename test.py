@@ -23,14 +23,19 @@ import functools
 import re
 import json
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.chrome.service import Service
+from catboost import CatBoostRegressor
+
+
+print("CAT BOOST")
 
 from selenium import webdriver
-# from seleniumwire import webdriver 
-# chrome_options = webdriver.ChromeOptions()
-# chrome_options.set_capability(
-#                         "goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"}
-#   
-#                   )
+from seleniumwire import webdriver 
+chrome_options = webdriver.ChromeOptions()
+chrome_options.set_capability(
+                        "goog:loggingPrefs", {"performance": "ALL", "browser": "ALL"}
+  
+                  )
 
 
 capabilities = DesiredCapabilities.CHROME
@@ -38,11 +43,20 @@ capabilities["goog:loggingPrefs"] = {"performance": "ALL"}  # chromedriver 75+
 
 options = Options()
 options.add_argument("--disable-infobars") 
-options.add_argument("--disable-infobars") 
-options.add_argument("--window-size=1920x1080")
+# options.add_argument("--window-size=1920x1080")
 
-driver: webdriver.Chrome = webdriver.Chrome(ChromeDriverManager().install(), options=options,  desired_capabilities=capabilities)
+# driver: webdriver.Chrome = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options,  desired_capabilities=capabilities)
 
+
+print("STart?")
+s=Service(ChromeDriverManager().install())
+print("?")
+driver = webdriver.Chrome(service=s)
+print("service?")
+driver.maximize_window()
+driver.get('https://www.google.com')
+driver.find_element(By.NAME, 'q').send_keys('Yasser Khalil')
+sleep(100)
 # def process_browser_logs_for_network_events(logs):
 #     """
 #     Return only logs which have a method that start with "Network.response", "Network.request", or "Network.webSocket"
@@ -57,7 +71,7 @@ driver: webdriver.Chrome = webdriver.Chrome(ChromeDriverManager().install(), opt
 #         ):
 #             yield log
 
-
+print("???")
 driver.get("https://www.wildberries.ru/catalog/179437040/detail.aspx")
 sleep(5)
 

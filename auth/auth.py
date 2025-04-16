@@ -17,6 +17,7 @@ def secure(token):
 
 def get_user_secure(token: str = Depends(oauth2_scheme), db: Session=Depends(get_db)):  ## Get user from decoded token 
     try: 
+        # print(token)
         user_data = secure(token)
         user = db.query(User).filter(User.id==user_data['user_id']).first()
         if user:
