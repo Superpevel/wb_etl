@@ -38,10 +38,21 @@ class Product(Base):
     production_amount = Column(Integer, default=0)
     wb_warehouse_amount = Column(Integer, default=0)
 
+    length = Column(Integer, default=0)
+    width = Column(Integer, default=0)
+    height = Column(Integer, default=0)
+    
+
     plan_pallet = Column(Integer)
 
     image_url = Column(String)
 
+    @property
+    def volume(self):
+        if all([self.height, self.length, self.width]):
+            return round((self.height * self.length * self.width) / 1000, 0)
+        return 0.0
+        
 
     def __repr__(self):
         return '<Product %r>' % self.id

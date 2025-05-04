@@ -11,7 +11,6 @@ from models.user import User
 import jwt
 from logs.logs_config import LOGGING_CONFIG
 import logging
-from auth.auth import get_user_secure
 from schemas.response_schemas.secured import SecuredResponse
 import json
 from fastapi import FastAPI
@@ -25,7 +24,6 @@ from dateutil import parser
 logging.config.dictConfig(LOGGING_CONFIG)
 from sqlalchemy.sql import func
 from sqlalchemy import Date, cast
-
 logging.config.dictConfig(LOGGING_CONFIG)
 
 logger = logging.getLogger(__name__)

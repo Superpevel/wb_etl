@@ -19,6 +19,14 @@ from dotenv import load_dotenv
 import os
 import requests
 import datetime
+from tasks.update_product import update_products_task
+from models import *
+from sqlalchemy.sql import func, desc
+from models.warehouses import Warehouse
+from models.product import Product
+from typing import List
+from sqlalchemy.sql import func
+
 
 load_dotenv()
 
@@ -132,229 +140,51 @@ unit_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@unit_router.get('')
-def unit_product(limit=100,skip=0,db: Session = Depends(get_db)):
+# @unit_router.get('')
+# def unit_product(limit=100,skip=0,db: Session = Depends(get_db)):
 
-    result = []
-    products: List[Product] = product_crud.get_multi(db,skip=0)
-    for product in products:
-        try:
-            commision=product.wb_price*product.commision_percentage/100
-            fee = product.wb_price*product.tax_fee_percentage/100
-            profit = product.wb_price - product.cost_price - fee - commision - product.logistics_fee
-            margin = profit/product.wb_price*100
-            rent = profit/product.cost_price*100
-        except Exception:
-            commision,fee,profit,rent, margin =0,0,0,0,0
-
-        unit = UnitProduct(
-            id=product.id, 
-            supply_article=product.supply_article,
-            wb_article=product.wb_article, barcode=product.barcode, 
-            cost_price=product.cost_price, 
-            wb_price=product.fake_wb_price*(100-product.discount)/100,
-            logistics_fee=product.logistics_fee, 
-            commision=commision,
-            profit=profit,
-            fee=fee,
-            margin=margin,
-            rent=rent,
-
-            fake_wb_price=product.fake_wb_price,
-            discount=product.discount
-        )
-        result.append(unit)
-    return result
-
-
-class ShipProduct(BaseModel):
-    id: Optional[int]
-    supply_article:  Optional[str]
-    wb_article: Optional[str]
-    barcode: Optional[str]
-    demand: Optional[int]
-    warehouse_amount: Optional[int]
-    wb_warehouse_amount: Optional[int]
-    shipping_amount: Optional[int]
-    production_amount: Optional[int]
-
-    wb_warehouse_last: Optional[float]
-    total_last: Optional[float]
-    total_amount: Optional[int]
-    plan_pallet: Optional[int]
-
-    wb_warehouse_after_supply_mono_or_box: str
-    wb_warehouse_last_after_mono_or_box: str
-
-# @unit_router.get('/shipping')
-# def ship_product(limit=100,skip=0,db: Session = Depends(get_db)):
-#     wb_warehouse_last,total_last,total_amount  ='0','0','0'
-#     wb_warehouse_last_after_mono_or_box= '0'
-#     wb_warehouse_last_supply_mono_or_box='0'
 #     result = []
 #     products: List[Product] = product_crud.get_multi(db,skip=0)
 #     for product in products:
-
 #         try:
-#             wb_warehouse_last = round(product.wb_warehouse_amount/product.demand, 2) # in weeks
-#             total_last = round((product.production_amount+ product.wb_warehouse_amount + product.shipping_amount + product.warehouse_amount)/product.demand*7/30, 2)
-#             total_amount = product.wb_warehouse_amount + product.shipping_amount + product.warehouse_amount + product.production_amount
-#             print(total_amount)
-#         except Exception as e:
-#             pass
-    
-#         try:
-
-#             wb_warehouse_last_after_mono = product.plan_pallet*product.mono_items
-#             wb_warehouse_last_after_box = product.plan_pallet*product.box_items
-
-#             wb_warehouse_last_after_mono_or_box = f'{round((wb_warehouse_last_after_mono+product.wb_warehouse_amount)/product.demand,2)}/{round((wb_warehouse_last_after_box+product.wb_warehouse_amount)/product.demand, 2)}'
-#             wb_warehouse_last_supply_mono_or_box = f'{wb_warehouse_last_after_mono}/{wb_warehouse_last_after_box}'
+#             commision=product.wb_price*product.commision_percentage/100
+#             fee = product.wb_price*product.tax_fee_percentage/100
+#             profit = product.wb_price - product.cost_price - fee - commision - product.logistics_fee
+#             margin = profit/product.wb_price*100
+#             rent = profit/product.cost_price*100
 #         except Exception:
-#             pass
+#             commision,fee,profit,rent, margin =0,0,0,0,0
 
-
-#         unit = ShipProduct(
+#         unit = UnitProduct(
 #             id=product.id, 
 #             supply_article=product.supply_article,
-#             wb_article=product.wb_article, 
-#             barcode=product.barcode, 
-#             demand=product.demand,
-#             wb_warehouse_amount=product.wb_warehouse_amount,
-#             warehouse_amount=product.warehouse_amount,
-#             shipping_amount=product.shipping_amount,
-#             production_amount=product.production_amount,
-#             plan_pallet=product.plan_pallet,
-#             wb_warehouse_last=wb_warehouse_last,
-#             wb_warehouse_last_after_mono_or_box=wb_warehouse_last_after_mono_or_box,
-#             wb_warehouse_after_supply_mono_or_box=wb_warehouse_last_supply_mono_or_box,
-#             total_last=total_last,
-#             total_amount=total_amount
+#             wb_article=product.wb_article, barcode=product.barcode, 
+#             cost_price=product.cost_price, 
+#             wb_price=product.fake_wb_price*(100-product.discount)/100,
+#             logistics_fee=product.logistics_fee, 
+#             commision=commision,
+#             profit=profit,
+#             fee=fee,
+#             margin=margin,
+#             rent=rent,
+
+#             fake_wb_price=product.fake_wb_price,
+#             discount=product.discount
 #         )
 #         result.append(unit)
 #     return result
 
-@unit_router.get('/update_info')
-def update_info(limit=100,skip=0,db: Session = Depends(get_db)):
-    users = db.query(User).all()
-    for user in users:
-        # token = user.token
-        headers = {
-            'accept': 'application/json',
-            'accept-language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-            'authorization': 'eyJhbGciOiJFUzI1NiIsImtpZCI6IjIwMjUwMjE3djEiLCJ0eXAiOiJKV1QifQ.eyJlbnQiOjEsImV4cCI6MTc1OTM5ODYxNCwiaWQiOiIwMTk1Zjg3Yi1iZmM2LTdkMGQtYTQyMS01MzM2ZjliOTA3Y2QiLCJpaWQiOjg1Mzc5MDI0LCJvaWQiOjEzODI0MzIsInMiOjc5MzQsInNpZCI6IjljYzdjMTZhLTQxNmEtNDdmZS1iNzJkLWQ4OTBlMGI2MmE3MyIsInQiOmZhbHNlLCJ1aWQiOjg1Mzc5MDI0fQ.KqEcP8O2Ehp6Cd2qwJzmI71IbMsOQVahzyQgbEMfgJ3batC9nsWdXYh8yTJI5VcQnoQbMzbfPVO5OIKCMO6ytQ',
-            'content-type': 'application/json',
-            'origin': 'https://dev.wildberries.ru',
-            'priority': 'u=1, i',
-            'referer': 'https://dev.wildberries.ru/',
-            'sec-ch-ua': '"Google Chrome";v="135", "Not-A.Brand";v="8", "Chromium";v="135"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"macOS"',
-            'sec-fetch-dest': 'empty',
-            'sec-fetch-mode': 'cors',
-            'sec-fetch-site': 'same-site',
-            'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36',
-        }
 
-        # params = {
-        #     'locale': 'ru',
-        # }
 
-        # json_data = {
-        #     'settings': {
-        #         'cursor': {
-        #             'limit': 100,
-        #         },
-        #         'filter': {
-        #             'withPhoto': -1,
-        #         },
-        #     },
-        # }
 
-        # rs = requests.post(
-        #     'https://content-api.wildberries.ru/content/v2/get/cards/list',
-        #     params=params,
-        #     headers=headers,
-        #     json=json_data,
-        # )
 
-        # # print(rs)
-    
-        # result = rs.json()
-        
-        # # print(result)
-        # # return
-        # for card in result['cards']:
-        #     product = db.query(Product).filter(Product.wb_article==str(card['nmID']), Product.supply_article==str(card['vendorCode'])).first()
-        #     if not product:
-        #         product = Product(
-        #             supply_article=str(card['vendorCode']),
-        #             wb_article=str(card['nmID']),
-        #             barcode=str(card['sizes'][0]['skus'][0]),
-        #             # image_url= str(card['photos'][0]),
-        #         )
-        #         db.add(product)
-        #         db.commit()
-        #         db.refresh(product)
-        #     else:
-        #         product_crud.update(db, db_obj=product,  obj_in={
-        #             'supply_article': str(card['vendorCode']),
-        #             'wb_article': str(card['nmID']),
-        #             'barcode': str(card['sizes'][0]['skus'][0]),
-        #             # 'image_url': str(card['photos'][0]),
-        #         })
-
-        today = datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S')
-        d = datetime.timedelta(days=7)
-        week_ago = (datetime.datetime.today()-d).strftime('%Y-%m-%d %H:%M:%S')
-        body_2 = {  
-            "timezone": "Europe/Moscow",
-            "period": {
-                "begin": week_ago,
-                "end": today
-            },
-            "orderBy": {
-                "field": "ordersSumRub",
-                "mode": "asc"
-            },
-            "page": 1
-        }
-        rs = requests.post(url='https://seller-analytics-api.wildberries.ru/api/v2/nm-report/detail',
-                        headers=headers,
-                        json=body_2
-        )
-        result = rs.json()
-        for card in result['data']['cards']:
-            product = db.query(Product).filter(Product.wb_article==str(card['nmID']), Product.supply_article==str(card['vendorCode'])).first()
-            if not product:
-                logger.info(f"NO PRODUCT {card}")
-                continue
-
-            product_crud.update(db, db_obj=product,  obj_in={
-                'demand': card['statistics']['selectedPeriod']['ordersCount'],
-                'wb_warehouse_amount': card['stocks']['stocksWb'],
-            })
-
-        rs = requests.get(url='https://discounts-prices-api.wildberries.ru/api/v2/list/goods/size/nm',
-                        headers=headers,
-        )
-
-        result = rs.json()
-
-        for card in result:
-            product = db.query(Product).filter(Product.wb_article==str(card['nmId'])).first()
-            if not product:
-                logger.info(f"NO PRODUCT {card}")
-                continue
-
-            product_crud.update(db, db_obj=product,  obj_in={
-                'fake_wb_price': card['price'],
-                'discount': card['discount'],
-                'wb_price': card['price']*(100-card['discount'])/100,
-            })
+@unit_router.get('/update_product_info')
+def update_info(db: Session = Depends(get_db)):
+    update_products_task(db)
 
 class MarginTargetModel(BaseModel):
-    target: int
+    nmId: str = '200263560'
+    sold_item: int
 
 def count_margin(product: Product, discount):
     wb_price = round(product.fake_wb_price*(100-discount)/100, 2)
@@ -364,35 +194,88 @@ def count_margin(product: Product, discount):
     margin = profit/wb_price*100  
     return margin
 
-@unit_router.post('/margin_target')
-def margin_target(request: MarginTargetModel,db: Session = Depends(get_db)):
-    products: List[Product]= db.query(Product).all()
-    for product in products:
 
-        discount = 0
-        margin = 0
-        if count_margin(product,discount) < request.target:
-            continue # update discount = 0
 
-        i = 0
-        while count_margin(product,discount)>request.target:
-            if discount == 100:
-                break            
-            discount +=1
-            i+=1
-        
-        if discount==0:
-            product_crud.update(db, db_obj=product, obj_in={
-                'discount': 0,
-                'wb_price': product.fake_wb_price
-            })
-        else:
-            print(product.fake_wb_price*(100-discount-1)/100)
-            product_crud.update(db, db_obj=product, obj_in={
-                'discount': discount-1,
-                'wb_price': round(product.fake_wb_price*(100-discount-1)/100, 2)
-            })
+
+# nmId = '200263560'
+
+# with sessionmaker.context_session() as db:
     
+def count_storage(item: Product, db: Session):
+    whs = db.query(Stocks).filter(Stocks.nmId==item.wb_article).all()
+    storage_sum = 0 
+    for w in whs:
+        warehouse_tariff: Warehouse = db.query(Warehouse).filter(Warehouse.warehouseName==w.warehouseName).first()
+        if warehouse_tariff:
+            storage_sum_one = float(warehouse_tariff.boxStorageBase.replace(',','.'))+ (item.volume-1)*float(warehouse_tariff.boxStorageLiter.replace(',','.'))
+
+            warehouses_total_storage = storage_sum_one*w.quantity
+
+            storage_sum+=warehouses_total_storage
+    
+    return storage_sum
         
-        # print(wb_price)
-        # wb_price= ['price']*(100-card['discount'])/100,
+
+def count_delivery(item: Product, warehouse: Warehouse):
+    logists_cost  = float(warehouse.boxDeliveryBase.replace(',','.')) + (item.volume-1)*float(warehouse.boxDeliveryLiter.replace(',','.'))
+    return logists_cost
+
+def count_full_delivery_cost(delivery_cost,buyoutsPercent):
+    return delivery_cost + 50 * (1 - buyoutsPercent / 100)
+
+
+    
+def calculate_margin(nmId,sold_items: int, db: Session):
+    # user = db.query(User).first()
+    item_warehouse = db.query(Stocks).filter(Stocks.nmId==nmId).order_by(desc(Stocks.quantity)).limit(1).first()
+    item: Product = db.query(Product).filter(Product.wb_article==nmId).first()
+
+    storage_sum = count_storage(item, db)
+
+    now = datetime.datetime.today().strftime('%Y-%m-%d')
+    warehouse_tariff = db.query(Warehouse).filter(Warehouse.warehouseName==item_warehouse.warehouseName).first()
+
+    delivery_cost = count_delivery(item, warehouse_tariff)
+    backwards_cost = 50
+    buyoutsPercent = db.query(Stats).filter(Stats.nmId==nmId).order_by(desc(Stats.date)).limit(1).first()
+    
+    if not buyoutsPercent:
+        buyoutsPercent=0.9
+    else:
+        if buyoutsPercent.buyoutsPercent < 70:
+            avg = db.query(func.avg(Stats.buyoutsPercent).label('average')).filter(Stats.nmId==nmId).first()
+            buyoutsPercent = avg.average
+        else:
+            buyoutsPercent = buyoutsPercent.buyoutsPercent
+        
+            
+    full_delivery_cost = 0
+
+    full_delivery_cost = count_full_delivery_cost(delivery_cost,buyoutsPercent)
+
+
+    promo_stats: PromoStats = db.query(PromoStats).filter(PromoStats.nmId==nmId).order_by(desc(PromoStats.date)).limit(1).first()
+ 
+    promo_cost = promo_stats.sum if promo_stats else 0 
+
+
+    profit_on_one = item.wb_price  - item.cost_price - full_delivery_cost - (item.cost_price*item.commision_percentage) 
+    
+    profit_total = profit_on_one*sold_items
+
+
+    profit =  profit_total - storage_sum - promo_cost # добавить рекаму # add fee 
+
+
+    margin = profit/(item.wb_price*sold_items)
+
+    return round(profit, 2), round(margin,2)*100
+
+@unit_router.post('/count_margin')
+def margin_target(request: MarginTargetModel,db: Session = Depends(get_db)):
+    margin, profit = calculate_margin(request.nmId, request.sold_item, db)
+    return margin, profit
+
+
+
+

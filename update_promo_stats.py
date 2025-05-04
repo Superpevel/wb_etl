@@ -11,7 +11,6 @@ from models.user import User
 import jwt
 from logs.logs_config import LOGGING_CONFIG
 import logging
-from auth.auth import get_user_secure
 from schemas.response_schemas.secured import SecuredResponse
 import json
 from fastapi import FastAPI

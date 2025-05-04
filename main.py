@@ -11,7 +11,7 @@ from models.user import User
 import jwt
 from logs.logs_config import LOGGING_CONFIG
 import logging
-from auth.auth import get_user_secure
+from auth.auth import get_userdata_secure
 from schemas.response_schemas.secured import SecuredResponse
 import json
 from fastapi import FastAPI
@@ -33,11 +33,14 @@ from tasks.update_stocks import update_stocks
 from tasks.update_promo_stats import update_adv_stats
 from tasks.update_adv_company import update_adv_company
 from tasks.update_index import update_localization_index
+from tasks.update_warehouses import update_warehouses
 from fastapi import BackgroundTasks
 from crud.product_crud import product_crud
 from api.api import router as api_router
 from models import Product
-
+from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from tasks.update_product import update_products_task
 load_dotenv()
 
 
@@ -69,9 +72,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get('/secured')
-def secured(user: User=Depends(get_user_secure)):
-    return True
+# @app.get('/secured')
+# def secured(user: User=Depends(get_user_secure)):
+#     return True
 
 @app.get("/")
 async def read_main():
@@ -193,16 +196,19 @@ def update_everything():
             # print("FINISH PARSING ADV COMPANIES")
             # update_adv_stats(db=db) # add repeat
             # print("FINISH PARSING ADV STATS")
-            update_stats(db=db) # add repeat 
+            # update_stats(db=db) # add repeat 
             # print("FINISH PARSING STATS")
 
-            update_stocks(db=db) # add repeat
+            update_warehouses(db)
+            print("FINISHED updating warehouse")
+            # update_stocks(db=db) # add repeat
             # print("FINISH PARSING STOCKS")
 
             # update_orders(db, week_ago)
             # print("FINISH PARSING ORDERS")
 
             # update_key_word_stat(db=db, from_time=week_ago, to=today)
+            # update_localization_index(db)
             # print("FINISHED TASKS")
         except Exception as e:
             logger.error(f'ERROR adv {e}')
@@ -213,6 +219,20 @@ def update_everything():
 # @repeat_every(seconds=60*60*12)  # 1 hour
 def update_everything_task() -> None:
     update_everything()
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+@app.post('/token', response_model=Token)
+def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session=Depends(get_db)):
+    user: User = db.query(User).filter(User.login==form_data.username).first()
+    if not user:
+        return {'error': 'No such user'}
+    else:
+        encoded = jwt.encode({"login": user.login, 'env': os.environ.get("TOKEN_ENV"), 'user': user.id, 'exp': datetime.datetime.now() + datetime.timedelta(minutes=1440)}, key=str(os.environ.get("TOKEN_KEY")), algorithm="HS256")
+
+        return {'access_token': encoded, 'token_type': 'bearer'}
 
 
     
@@ -261,7 +281,6 @@ def get_start_update():
 if __name__ == "__main__":
     # print( platform.platform())
     if 'macOS' in platform.platform():
-        print("AS")
         uvicorn.run('main:app', host="0.0.0.0", port=8008, reload=True, debug=True)
     else:
         uvicorn.run('main:app', host="0.0.0.0", port=8008, reload=False, debug=False)
