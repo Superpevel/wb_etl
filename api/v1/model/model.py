@@ -30,10 +30,7 @@ import pickle
 
 load_dotenv()
 
-SQLALCHEMY_DATABASE_URL = (f"postgresql://{os.environ.get('DB_USER')}"
-                f":{os.environ.get('DB_PASSWORD')}"
-                f"@{os.environ.get('DB_HOST')}"
-                f"/{os.environ.get('DB_NAME')}")
+SQLALCHEMY_DATABASE_URL = os.environ.get("DATABASE_URL")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL, connect_args={}
