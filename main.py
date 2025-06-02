@@ -191,25 +191,25 @@ def update_everything():
 
     with sessionmaker.context_session() as db:
         try:
-            # print("STARTING!")
-            # update_adv_company(db=db) # add repeat
-            # print("FINISH PARSING ADV COMPANIES")
-            # update_adv_stats(db=db) # add repeat
-            # print("FINISH PARSING ADV STATS")
-            # update_stats(db=db) # add repeat 
-            # print("FINISH PARSING STATS")
+            print("STARTING!")
+            update_adv_company(db=db) # add repeat
+            print("FINISH PARSING ADV COMPANIES")
+            update_adv_stats(db=db) # add repeat
+            print("FINISH PARSING ADV STATS")
+            update_stats(db=db) # add repeat 
+            print("FINISH PARSING STATS")
 
-            update_warehouses(db)
+            # update_warehouses(db)
             print("FINISHED updating warehouse")
-            # update_stocks(db=db) # add repeat
-            # print("FINISH PARSING STOCKS")
+            update_stocks(db=db) # add repeat
+            print("FINISH PARSING STOCKS")
 
-            # update_orders(db, week_ago)
-            # print("FINISH PARSING ORDERS")
+            update_orders(db, week_ago)
+            print("FINISH PARSING ORDERS")
 
-            # update_key_word_stat(db=db, from_time=week_ago, to=today)
-            # update_localization_index(db)
-            # print("FINISHED TASKS")
+            update_key_word_stat(db=db, from_time=week_ago, to=today)
+            update_localization_index(db)
+            print("FINISHED TASKS")
         except Exception as e:
             logger.error(f'ERROR adv {e}')
 

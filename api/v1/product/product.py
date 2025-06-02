@@ -26,6 +26,7 @@ from models.warehouses import Warehouse
 from models.product import Product
 from typing import List
 from sqlalchemy.sql import func
+from auth.auth import get_userdata_secure
 
 
 load_dotenv()
@@ -101,18 +102,18 @@ router = SQLAlchemyCRUDRouter(
 
 @router.patch('')
 def patch_product(request: ProductPatch, db: Session = Depends(get_db)):
-    door = db.query(Product).filter(Product.id==request.id).first()
-    if not door:
-        return HTTPException(status_code=400, detail={'error': 'no such door'})
+    product = db.query(Product).filter(Product.id==request.id).first()
+    if not product:
+        return HTTPException(status_code=400, detail={'error': 'no such product'})
     delattr(request,'id')
     for var,value in vars(request).items():
         print(var, value)
         if value or value is False or value==0:
-            setattr(door, var, value)
-    db.add(door)
+            setattr(product, var, value)
+    db.add(product)
     db.commit()
-    db.refresh(door)
-    return door
+    db.refresh(product)
+    return product
 
 class UnitProduct(BaseModel):
     id: int
@@ -186,6 +187,10 @@ class MarginTargetModel(BaseModel):
     nmId: str = '200263560'
     sold_item: int
 
+class SetPriceModel(BaseModel):
+    nmId: str = '251666784'
+    price: int
+
 def count_margin(product: Product, discount):
     wb_price = round(product.fake_wb_price*(100-discount)/100, 2)
     commision=wb_price*product.commision_percentage/100
@@ -194,12 +199,6 @@ def count_margin(product: Product, discount):
     margin = profit/wb_price*100  
     return margin
 
-
-
-
-# nmId = '200263560'
-
-# with sessionmaker.context_session() as db:
     
 def count_storage(item: Product, db: Session):
     whs = db.query(Stocks).filter(Stocks.nmId==item.wb_article).all()
@@ -221,22 +220,21 @@ def count_delivery(item: Product, warehouse: Warehouse):
     return logists_cost
 
 def count_full_delivery_cost(delivery_cost,buyoutsPercent):
-    return delivery_cost + 50 * (1 - buyoutsPercent / 100)
+    backwards_cost = 50
+    return delivery_cost + backwards_cost * (1 - buyoutsPercent / 100)
 
-
+fee =0.07
     
 def calculate_margin(nmId,sold_items: int, db: Session):
-    # user = db.query(User).first()
     item_warehouse = db.query(Stocks).filter(Stocks.nmId==nmId).order_by(desc(Stocks.quantity)).limit(1).first()
+    
     item: Product = db.query(Product).filter(Product.wb_article==nmId).first()
 
     storage_sum = count_storage(item, db)
 
-    now = datetime.datetime.today().strftime('%Y-%m-%d')
     warehouse_tariff = db.query(Warehouse).filter(Warehouse.warehouseName==item_warehouse.warehouseName).first()
 
     delivery_cost = count_delivery(item, warehouse_tariff)
-    backwards_cost = 50
     buyoutsPercent = db.query(Stats).filter(Stats.nmId==nmId).order_by(desc(Stats.date)).limit(1).first()
     
     if not buyoutsPercent:
@@ -258,13 +256,11 @@ def calculate_margin(nmId,sold_items: int, db: Session):
  
     promo_cost = promo_stats.sum if promo_stats else 0 
 
-
-    profit_on_one = item.wb_price  - item.cost_price - full_delivery_cost - (item.cost_price*item.commision_percentage) 
+    profit_on_one = item.wb_price  - item.cost_price - full_delivery_cost - (item.cost_price*item.commision_percentage) - item.wb_price*fee
     
     profit_total = profit_on_one*sold_items
 
-
-    profit =  profit_total - storage_sum - promo_cost # добавить рекаму # add fee 
+    profit =  profit_total - storage_sum - promo_cost 
 
 
     margin = profit/(item.wb_price*sold_items)
@@ -277,5 +273,18 @@ def margin_target(request: MarginTargetModel,db: Session = Depends(get_db)):
     return margin, profit
 
 
+
+@unit_router.post('/set_price')
+def margin_target(request: SetPriceModel,user: User=Depends(get_userdata_secure),db: Session = Depends(get_db)):
+    # margin, profit = calculate_margin(request.nmId, request.sold_item, db)
+    price = request.price*2
+    discount = 50
+    # result =  requests.post("https://discounts-prices-api.wildberries.ru/api/v2/upload/task",headers={
+    #     'Authorization': user.token
+    # }, json={"data": [{"nmID": int(request.nmId), "price": price, "discount": discount}]})
+    # print(result.json())
+    # return result.json()
+
+    return price, discount
 
 

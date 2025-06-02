@@ -75,31 +75,36 @@ def wape_func(y_true, y_pred):
     return wape
 
 def find_optimal_price(model, product_data,db ,model_type='cat',
-                      price_range=(100, 5000), step=50, plot=True):
+                      price_range=(100, 5000),check_competetive=False, competetive_sensetivity=30,competative_price=0, step=50, plot=True):
 
     prices = np.arange(price_range[0], price_range[1], step)
     orders_pred = []
     profit_dict = {}
     margin_dict = {}
+
+    if check_competetive and competative_price>0:
+        competative_price_low =  competative_price-(competative_price*competetive_sensetivity)/100
+        competative_price_high =  competative_price+(competative_price*competetive_sensetivity)/100
+
     for price in prices:
         testt = product_data.copy()
         testt['avg_price_rub'] = price
         testt = testt.to_frame().T
-        pred = round(model.predict(testt)[0], 0) # округелние вверх и вниз
-        # print(pred)
+        pred = round(model.predict(testt)[0], 0) 
         
         profit, margin =  calculate_margin(str(int(product_data['nmId'])),pred,db)
-        
 
-        if margin_dict.get(margin) and margin_dict[margin]['price']< price:  
-            margin_dict.update({margin: {'pred': pred, 'price': price }}) # check auto max?
-            print(margin_dict[margin]['price'], price, 'upd')
+        if margin_dict.get(margin) and margin_dict[margin]['price']< price:
+            if check_competetive and competative_price>0 and price>= competative_price_low and price<=competative_price_high:
+                margin_dict.update({margin: {'pred': pred, 'price': price }}) 
+                print(margin_dict[margin]['price'], price, 'upd')
         else:
             margin_dict.update({margin: {'pred': pred, 'price': price }}) 
 
         if profit_dict.get(profit) and profit_dict[profit]['price']< price:  
-            profit_dict.update({profit: {'pred': pred, 'price': price }})
-            print(profit_dict[profit]['price'], price, 'upd')
+            if check_competetive and competative_price>0 and price>= competative_price_low and price<=competative_price_high:
+                profit_dict.update({profit: {'pred': pred, 'price': price }})
+                print(profit_dict[profit]['price'], price, 'upd')
         else:
             profit_dict.update({profit: {'pred': pred, 'price': price }})
 
@@ -182,7 +187,7 @@ def learn(db: Session = Depends(get_db)):
 
 
 @router.get('/model_find_price')
-def find_price(nmId: str,model_type: str = 'catboost', db: Session = Depends(get_db)):
+def find_price(nmId: str,model_type: str = 'catboost',competetive_sensetivity: int = 30, check_competetive: bool =  False, db: Session = Depends(get_db)):
 
     with engine.connect() as conn:
         df = pd.read_sql(
@@ -222,7 +227,7 @@ def find_price(nmId: str,model_type: str = 'catboost', db: Session = Depends(get
         looking = df_final.iloc[0].copy()
         # y = df_final['ordersCount']
 
-        return find_optimal_price(model, looking,db, 'ridge', (100, avg_price*10))
+        return find_optimal_price(model, looking,db, 'ridge', (100, avg_price*1.3))
 
 
 
